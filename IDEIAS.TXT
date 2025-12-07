@@ -1,0 +1,3 @@
+1-se houver tempo, adicionar uma aba "layout" aos eventos e depois recordes, ou seja, uma pista tem varios layouts, (explico melhor se nao perceberes) e adicionavamos complexidade a um projeto que parece simples.
+(podiamos adicionar um mapa do layout utilizado no recorde ou evento que esta a ser acedido etc etc)
+2-
