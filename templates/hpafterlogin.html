@@ -61,40 +61,49 @@
 
     <aside class="sidebar" aria-label="Barra lateral">
       <nav>
-        <button onclick="window.location.href='homepage.html'" title="HomePage">
+        <button onclick="window.location.href='/'" title="HomePage">
           <i class="fa-solid fa-house"></i>
         </button>
-        <button onclick="window.location.href='events.html'" title="Eventos Passados">
+        <button onclick="window.location.href='/events'" title="Eventos Passados">
           <i class="fa-solid fa-calendar"></i>
         </button>
-        <button onclick="window.location.href='records.html'" title="Recordes da Pista">
+        <button onclick="window.location.href='/records'" title="Recordes da Pista">
           <i class="fa-solid fa-ranking-star"></i>
         </button>
-        <button onclick="window.location.href='pilots.html'" title="Pilotos">
+        <button onclick="window.location.href='/pilots'" title="Pilotos">
           <i class="fa-solid fa-users"></i>
         </button>
-        <button onclick="window.location.href='teams.html'" title="Equipas">
+        <button onclick="window.location.href='/teams'" title="Equipas">
           <i class="fa-solid fa-warehouse"></i>
         </button>
       </nav>
-      <div style="margin-top:auto; display:flex; align-items:center; justify-content:center;">
-        <button onclick="window.location.href='login.html'" title="Login"
-           style="background:transparent; border:none; color:rgba(255,255,255,0.95); cursor:pointer; padding:10px; border-radius:6px; font-size:16px;">
+<div style="margin-top:auto; display:flex; align-items:center; justify-content:center; position:relative;" class="dropdown-container">
+        <button id="userMenuBtn" style="background:transparent; border:none; color:rgba(255,255,255,0.95); cursor:pointer; padding:10px; border-radius:6px; font-size:16px; transition: background 0.2s;">
           <i class="fa-solid fa-user"></i>
         </button>
+        <div id="dropupMenu" style="display:none; position:absolute; bottom:100%; left:200%; transform:translateX(-50%); margin-bottom:8px; margin-left:8px; background:transparent; backdrop-filter:blur(12px); border-radius:8px; min-width:180px; box-shadow:0 -4px 20px rgba(0,0,0,0.5); overflow:hidden;">
+          <button onclick="window.location.href='/settings'" style="width:100%; background:transparent; border:none; color:rgba(255,255,255,0.9); cursor:pointer; padding:12px 16px; text-align:left; font-size:14px;display:flex; align-items:center; gap:10px;">
+            <span><b>Definições</b></span>
+          </button>
+          <div style="height:1px; background:rgba(255,255,255,0.1);"></div>
+          <button onclick="window.location.href='/logout'" style="width:100%; background:transparent; border:none; color:rgba(255,100,100,0.9); cursor:pointer; padding:12px 16px; text-align:left; font-size:14px; display:flex; align-items:center; gap:10px;">
+            <span><b>Terminar Sessão</b></span>
+          </button>
+        </div>
       </div>
+    </aside>
     </aside>
 
     <section class="hero" aria-label="Carrossel de imagens">
       <div class="slides" id="slides">
-        <div class="slide" style="background-image:url('assets/foto2.jpg')"></div>
-        <div class="slide" style="background-image:url('assets/foto3.jpg')"></div>
-        <div class="slide" style="background-image:url('assets/foto1.png')"></div>
+        <div class="slide" style="background-image:url('/static/assets/foto2.jpg')"></div>
+        <div class="slide" style="background-image:url('/static/assets/foto3.jpg')"></div>
+        <div class="slide" style="background-image:url('/static/assets/foto1.png')"></div>
       </div>
       <div class="overlay" aria-hidden="true"></div>
 
       <div class="logo-wrap">
-        <img src="assets/Estoril_Track_Logo.png" alt="Estoril Track Manager Logo" />
+        <img src="/static/assets/Estoril_Track_Logo.png" alt="Estoril Track Manager Logo" />
         <div class="controls" id="dots" aria-hidden="true"></div>
       </div>
     </section>
@@ -154,6 +163,11 @@
 
         show(0);
       })();
+
+      const btn = document.getElementById('userMenuBtn');
+      const menu = document.getElementById('dropupMenu');
+      btn.onclick = (e) => { e.stopPropagation(); menu.style.display = menu.style.display === 'block' ? 'none' : 'block'; };
+      document.onclick = () => menu.style.display = 'none';
     </script>
   </body>
 </html>

@@ -136,7 +136,7 @@
   <body>
     <div class="login-container">
       <div class="logo">
-        <img src="assets/Estoril_Track_Logo.png" alt="Estoril Track Logo" />
+        <img src="static/assets/Estoril_Track_Logo.png" alt="Estoril Track Logo" />
       </div>
       
       <h1>Bem-vindo</h1>
@@ -156,28 +156,42 @@
         
         <div class="divider">ou</div>
         
-        <button type="button" class="btn btn-secondary" onclick="window.location.href='register.html'">
+        <button type="button" class="btn btn-secondary" onclick="window.location.href='/register'">
           Criar Conta
         </button>
       </form>
       
       <div class="back-link">
-        <a href="homepage.html">← Voltar à página inicial</a>
+        <a href="/">← Voltar à página inicial</a>
       </div>
     </div>
 
     <script>
-      document.getElementById('loginForm').addEventListener('submit', function(e) {
+      document.getElementById('loginForm').addEventListener('submit', function(e){
         e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+        const data = {
+          username: document.getElementById('username').value,
+          password: document.getElementById('password').value
+        };
         
-        // Aqui você pode adicionar a lógica de autenticação
-        console.log('Login attempt:', { username, password });
-        
-        // Exemplo: redirecionar após login (substituir por lógica real)
-        alert('Login em desenvolvimento. Username: ' + username);
-        // window.location.href = 'homepage.html';
+        fetch('/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+          if(result.success){
+            window.location.href = '/hpafterlogin';
+          } else {
+            alert('Erro: ' + result.message);
+          }
+        })
+        .catch(error => {
+          alert('Erro ao fazer login: ' + error);
+        });
       });
     </script>
   </body>
