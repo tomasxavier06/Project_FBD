@@ -58,7 +58,6 @@
     </style>
   </head>
   <body>
-
     <aside class="sidebar" aria-label="Barra lateral">
       <nav>
         <button onclick="window.location.href='/'" title="HomePage">
@@ -127,11 +126,10 @@
         const slides = Array.from(document.querySelectorAll('.slide'));
         const dotsWrap = document.getElementById('dots');
         let current = 0;
-        const interval = 4000; // ms
+        const interval = 4000;
 
         if(!slides.length) return;
 
-        // criar dots
         slides.forEach((s, i) => {
           const d = document.createElement('div');
           d.className = 'dot' + (i===0? ' active':'');
@@ -146,12 +144,9 @@
         }
 
         function goTo(i){ current = i; show(current); restart(); }
-
         function next(){ current = (current+1) % slides.length; show(current); }
-
         let timer = setInterval(next, interval);
         function restart(){ clearInterval(timer); timer = setInterval(next, interval); }
-
         show(0);
       })();
     </script>

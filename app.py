@@ -1,4 +1,4 @@
-from flask import Flask, redirect, render_template, request, jsonify, session
+from flask import Flask, redirect, render_template, request, jsonify, session, flash
 import pyodbc
 import hashlib
 
@@ -52,30 +52,39 @@ def records():
 
 @app.route('/welcomeDC')
 def welcomeDC():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Precisa fazer login para aceder a esta página!', 'redirect': '/login'}), 401
     conn=get_db_connection()
     cursor=conn.cursor()
     cursor.execute('SELECT * FROM Diretor_Corrida WHERE id_utilizador=?',(session['id'],))
     if cursor.fetchone() is None:
+        conn.close()
         return redirect('/logout')
     conn.close()
     return render_template('WelcomeDC.html')
 
 @app.route('/welcomeDP')
 def welcomeDP():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Precisa fazer login para aceder a esta página!', 'redirect': '/login'}), 401
     conn=get_db_connection()
     cursor=conn.cursor()
-    cursor.execute('SELECT * FROM Diretor_Pista WHERE id_utilizador=?',(session['id'],))
+    cursor.execute('SELECT * FROM Diretor_Equipa WHERE id_utilizador=?',(session['id'],))
     if cursor.fetchone() is None:
+        conn.close()
         return redirect('/logout')
     conn.close()
     return render_template('WelcomeDP.html')
 
 @app.route('/welcomeTP')
 def welcomeTP():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Precisa fazer login para aceder a esta página!', 'redirect': '/login'}), 401 
     conn=get_db_connection()
     cursor=conn.cursor()
     cursor.execute('SELECT * FROM Tecnico_Pista WHERE id_utilizador=?',(session['id'],))
     if cursor.fetchone() is None:
+        conn.close()
         return redirect('/logout')
     conn.close()
     return render_template('WelcomeTP.html')
@@ -101,18 +110,22 @@ def login():
                 cursor.execute('SELECT * FROM Tecnico_Pista WHERE id_utilizador = ?', (id_utilizador,))
                 if cursor.fetchone():
                     session['role'] = 'tecnico'
+                    conn.close()
                     return jsonify({'success': True, 'redirect': '/welcomeTP'})
                 cursor.execute('SELECT * FROM Diretor_Equipa WHERE id_utilizador = ?', (id_utilizador,))
                 if cursor.fetchone():
                     session['role'] = 'diretor_equipa'
-                    return jsonify({'success': True, 'redirect': '/welcomeDC'})
+                    conn.close()
+                    return jsonify({'success': True, 'redirect': '/welcomeDP'})
                 cursor.execute('SELECT * FROM Diretor_Corrida WHERE id_utilizador = ?', (id_utilizador,))
                 if cursor.fetchone():
                     session['role'] = 'diretor_corrida'
-                    return jsonify({'success': True, 'redirect': '/welcomeDP'})
+                    conn.close()
+                    return jsonify({'success': True, 'redirect': '/welcomeDC'})
                 conn.close()
-                return jsonify({'success': True, 'message': 'Login efetuado com sucesso!'})
+                return jsonify({'success': True, 'redirect': '/hpafterlogin'})
             else:
+                conn.close()
                 return jsonify({'success': False, 'message': 'Username ou password incorretos!'}), 401
         except Exception as e:
             return jsonify({'success': False, 'message': str(e)}), 400
