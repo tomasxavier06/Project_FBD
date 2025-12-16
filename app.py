@@ -50,6 +50,36 @@ def records():
     # Retorna o template records.html
     return render_template('records.html')
 
+@app.route('/welcomeDC')
+def welcomeDC():
+    conn=get_db_connection()
+    cursor=conn.cursor()
+    cursor.execute('SELECT * FROM Diretor_Corrida WHERE id_utilizador=?',(session['id'],))
+    if cursor.fetchone() is None:
+        return redirect('/logout')
+    conn.close()
+    return render_template('WelcomeDC.html')
+
+@app.route('/welcomeDP')
+def welcomeDP():
+    conn=get_db_connection()
+    cursor=conn.cursor()
+    cursor.execute('SELECT * FROM Diretor_Pista WHERE id_utilizador=?',(session['id'],))
+    if cursor.fetchone() is None:
+        return redirect('/logout')
+    conn.close()
+    return render_template('WelcomeDP.html')
+
+@app.route('/welcomeTP')
+def welcomeTP():
+    conn=get_db_connection()
+    cursor=conn.cursor()
+    cursor.execute('SELECT * FROM Tecnico_Pista WHERE id_utilizador=?',(session['id'],))
+    if cursor.fetchone() is None:
+        return redirect('/logout')
+    conn.close()
+    return render_template('WelcomeTP.html')
+
 # Define a rota para a página de login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -62,11 +92,25 @@ def login():
             cursor = conn.cursor()
             cursor.execute('SELECT id_utilizador, username, email FROM Utilizador WHERE username = ? AND password = ?', (username, password))
             utilizador = cursor.fetchone()
-            conn.close()
             if utilizador:
+                id_utilizador = utilizador[0]
                 session['loggedin'] = True
-                session['id'] = utilizador[0]
+                session['id'] = id_utilizador
                 session['username'] = utilizador[1]
+
+                cursor.execute('SELECT * FROM Tecnico_Pista WHERE id_utilizador = ?', (id_utilizador,))
+                if cursor.fetchone():
+                    session['role'] = 'tecnico'
+                    return jsonify({'success': True, 'redirect': '/welcomeTP'})
+                cursor.execute('SELECT * FROM Diretor_Equipa WHERE id_utilizador = ?', (id_utilizador,))
+                if cursor.fetchone():
+                    session['role'] = 'diretor_equipa'
+                    return jsonify({'success': True, 'redirect': '/welcomeDC'})
+                cursor.execute('SELECT * FROM Diretor_Corrida WHERE id_utilizador = ?', (id_utilizador,))
+                if cursor.fetchone():
+                    session['role'] = 'diretor_corrida'
+                    return jsonify({'success': True, 'redirect': '/welcomeDP'})
+                conn.close()
                 return jsonify({'success': True, 'message': 'Login efetuado com sucesso!'})
             else:
                 return jsonify({'success': False, 'message': 'Username ou password incorretos!'}), 401

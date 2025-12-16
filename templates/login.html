@@ -184,7 +184,7 @@
         .then(response => response.json())
         .then(result => {
           if(result.success){
-            window.location.href = '/hpafterlogin';
+            window.location.href = result.redirect;
           } else {
             alert('Erro: ' + result.message);
           }
