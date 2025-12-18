@@ -7,22 +7,30 @@ app.secret_key = 'sua_chave_secreta_aqui_123'  # Necessário para sessões
 
 # Configuração da base de dados
 DB_CONFIG = {
-    'server': 'DESKTOP-4ATM5KE\\SQLEXPRESS',
-    'database': 'p1g7'
+    'server': 'tcp:mednat.ieeta.pt\\SQLSERVER,8101',
+    'database': 'p1g7',
+    'username': 'p1g7',
+    'password': '-375018182@BD'
 }
 
-# Função para obter conexão com a BD (Windows Authentication)
+# Função para obter conexão com a BD (SQL Server Authentication)
 def get_db_connection():
-    conn_str = f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={DB_CONFIG['server']};DATABASE={DB_CONFIG['database']};Trusted_Connection=yes"
+    conn_str = f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={DB_CONFIG['server']};DATABASE={DB_CONFIG['database']};UID={DB_CONFIG['username']};PWD={DB_CONFIG['password']}"
     return pyodbc.connect(conn_str)
+
+# Função geral para gerar IDs únicos para qualquer tabela
+def generate_id(table_name, id_column):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = f"SELECT ISNULL(MAX({id_column}), 0) + 1 FROM {table_name}"
+    cursor.execute(query) 
+    new_id = cursor.fetchone()[0]
+    conn.close()
+    return new_id
 
 @app.route('/')
 def homepage():
     return render_template('homepage.html')
-
-@app.route('/hpafterlogin')
-def hpafterlogin():
-    return render_template('hpafterlogin.html')
 
 @app.route('/pilots')
 def pilots():
@@ -56,7 +64,7 @@ def welcomeDC():
         return jsonify({'success': False, 'message': 'Precisa fazer login para aceder a esta página!', 'redirect': '/login'}), 401
     conn=get_db_connection()
     cursor=conn.cursor()
-    cursor.execute('SELECT * FROM Diretor_Corrida WHERE id_utilizador=?',(session['id'],))
+    cursor.execute('SELECT * FROM Diretor_de_Corrida WHERE id_utilizador=?',(session['id'],))
     if cursor.fetchone() is None:
         conn.close()
         return redirect('/logout')
@@ -69,7 +77,7 @@ def welcomeDP():
         return jsonify({'success': False, 'message': 'Precisa fazer login para aceder a esta página!', 'redirect': '/login'}), 401
     conn=get_db_connection()
     cursor=conn.cursor()
-    cursor.execute('SELECT * FROM Diretor_Equipa WHERE id_utilizador=?',(session['id'],))
+    cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?',(session['id'],))
     if cursor.fetchone() is None:
         conn.close()
         return redirect('/logout')
@@ -82,7 +90,7 @@ def welcomeTP():
         return jsonify({'success': False, 'message': 'Precisa fazer login para aceder a esta página!', 'redirect': '/login'}), 401 
     conn=get_db_connection()
     cursor=conn.cursor()
-    cursor.execute('SELECT * FROM Tecnico_Pista WHERE id_utilizador=?',(session['id'],))
+    cursor.execute('SELECT * FROM Tecnico_de_Pista WHERE id_utilizador=?',(session['id'],))
     if cursor.fetchone() is None:
         conn.close()
         return redirect('/logout')
@@ -107,19 +115,19 @@ def login():
                 session['id'] = id_utilizador
                 session['username'] = utilizador[1]
 
-                cursor.execute('SELECT * FROM Tecnico_Pista WHERE id_utilizador = ?', (id_utilizador,))
+                cursor.execute('SELECT * FROM Tecnico_de_Pista WHERE id_utilizador = ?', (id_utilizador,))
                 if cursor.fetchone():
                     session['role'] = 'tecnico'
                     conn.close()
                     return jsonify({'success': True, 'redirect': '/welcomeTP'})
-                cursor.execute('SELECT * FROM Diretor_Equipa WHERE id_utilizador = ?', (id_utilizador,))
+                cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador = ?', (id_utilizador,))
                 if cursor.fetchone():
-                    session['role'] = 'diretor_equipa'
+                    session['role'] = 'Diretor_de_Equipa'
                     conn.close()
                     return jsonify({'success': True, 'redirect': '/welcomeDP'})
-                cursor.execute('SELECT * FROM Diretor_Corrida WHERE id_utilizador = ?', (id_utilizador,))
+                cursor.execute('SELECT * FROM Diretor_de_Corrida WHERE id_utilizador = ?', (id_utilizador,))
                 if cursor.fetchone():
-                    session['role'] = 'diretor_corrida'
+                    session['role'] = 'Diretor_de_Corrida'
                     conn.close()
                     return jsonify({'success': True, 'redirect': '/welcomeDC'})
                 conn.close()
@@ -138,25 +146,26 @@ def register():
         try:
             data = request.get_json()
             nome = data['name']
+            username = data['username']
             email = data['email']
             password = data['password']
             tipo = data['role']
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # Inserir utilizador
+            # Inserir utilizador (ID é gerado automaticamente pelo IDENTITY)
             cursor.execute(
-                "INSERT INTO Utilizador (username, email, password) OUTPUT INSERTED.id_utilizador VALUES (?, ?, ?)",
-                (nome, email, password)
+                "INSERT INTO Utilizador (username, email, password, nome) OUTPUT INSERTED.ID_utilizador VALUES (?, ?, ?, ?)",
+                (username, email, password, nome)
             )
             id_utilizador = cursor.fetchone()[0]
             
             if tipo == 'tecnico':
-                cursor.execute("INSERT INTO Tecnico_Pista (id_utilizador) VALUES (?)", (id_utilizador,))
-            elif tipo == 'diretor_equipa':
-                cursor.execute("INSERT INTO Diretor_Equipa (id_utilizador) VALUES (?)", (id_utilizador,))
-            elif tipo == 'diretor_corrida':
-                cursor.execute("INSERT INTO Diretor_Corrida (id_utilizador) VALUES (?)", (id_utilizador,))
+                cursor.execute("INSERT INTO Tecnico_de_Pista (id_utilizador) VALUES (?)", (id_utilizador,))
+            elif tipo == 'Diretor_de_Equipa':
+                cursor.execute("INSERT INTO Diretor_de_Equipa (id_utilizador) VALUES (?)", (id_utilizador,))
+            elif tipo == 'Diretor_de_Corrida':
+                cursor.execute("INSERT INTO Diretor_de_Corrida (id_utilizador) VALUES (?)", (id_utilizador,))
             
             conn.commit()
             conn.close()

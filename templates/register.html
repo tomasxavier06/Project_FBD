@@ -1,97 +1,164 @@
 <!doctype html>
 <html lang="pt">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Registo - Estoril Track Manager</title>
-    <style>
-      * { margin:0; padding:0; box-sizing:border-box; }
-      html,body { height:100%; }
-      body {
-        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-        background: #ffffff;
-        color:#333;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        padding:20px;
-      }
-      .card {
-        background:#f6f6f8;
-        border-radius:12px;
-        padding:30px;
-        width:100%;
-        max-width:420px;
-        box-shadow: 0 6px 24px rgba(0,0,0,0.06);
-      }
-      .logo { text-align:center; margin-bottom:18px; }
-      .logo img { max-width:140px; height:auto; }
-      h1{ text-align:center; margin-bottom:18px; font-size:20px; }
-      .form-group{ margin-bottom:14px; }
-      label{ display:block; font-size:13px; color:#555; margin-bottom:6px; }
-      input, select{ width:100%; padding:10px 12px; border-radius:8px; border:1px solid #ddd; font-size:14px; }
-      .btn { width:100%; padding:12px; border-radius:8px; border:none; background:#4a6cf7; color:#fff; font-weight:600; cursor:pointer; margin-top:10px; }
-      .back-link{ text-align:center; margin-top:12px; }
-      .back-link a{ color:#666; text-decoration:none; font-size:13px; }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <div class="logo">
-        <img src="/static/assets/Estoril_Track_Logo.png" alt="Estoril Track Logo" />
-      </div>
-      <h1>Criar Conta</h1>
-      <form id="registerForm">
-        <div class="form-group">
-          <label for="name">Nome</label>
-          <input type="text" id="name" name="name" required />
-        </div>
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" required title="nome@exemplo.com" />
-        </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" required />
-        </div>
-        <div class="form-group">
-          <label for="role">Tipo de utilizador</label>
-          <select id="role" name="role" required>
-            <option value="">-- Selecionar --</option>
-            <option value="tecnico">Técnico de Pista</option>
-            <option value="diretor_equipa">Diretor de Equipa</option>
-            <option value="diretor_corrida">Diretor de Corrida</option>
-          </select>
-        </div>
-        <button type="submit" class="btn">Registar</button>
-      </form>
 
-      <div class="back-link">
-        <a href="/">← Voltar à página inicial</a>
-      </div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Registo - Estoril Track Manager</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      background: #ffffff;
+      color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: #f6f6f8;
+      border-radius: 12px;
+      padding: 30px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .logo img {
+      max-width: 140px;
+      height: auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 18px;
+      font-size: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 6px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-size: 14px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      background: #4a6cf7;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .back-link {
+      text-align: center;
+      margin-top: 12px;
+    }
+
+    .back-link a {
+      color: #666;
+      text-decoration: none;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="logo">
+      <img src="/static/assets/Estoril_Track_Logo.png" alt="Estoril Track Logo" />
     </div>
+    <h1>Criar Conta</h1>
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="name">Nome</label>
+        <input type="text" id="name" name="name" required />
+      </div>
+      <div class="form-group">
+        <label for="username">Nome de Utilizador</label>
+        <input type="text" id="username" name="username" required />
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required title="nome@exemplo.com" />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required />
+      </div>
+      <div class="form-group">
+        <label for="role">Tipo de utilizador</label>
+        <select id="role" name="role" required>
+          <option value="">-- Selecionar --</option>
+          <option value="tecnico">Técnico de Pista</option>
+          <option value="diretor_equipa">Diretor de Equipa</option>
+          <option value="diretor_corrida">Diretor de Corrida</option>
+        </select>
+      </div>
+      <button type="submit" class="btn">Registar</button>
+    </form>
 
-    <script>
-      document.getElementById('registerForm').addEventListener('submit', function(e){
-        e.preventDefault();
-        const data = {
-          name: document.getElementById('name').value,
-          email: document.getElementById('email').value,
-          password: document.getElementById('password').value,
-          role: document.getElementById('role').value
-        };
-        
-        // Enviar dados para o servidor
-        fetch('/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(data)
-        })
+    <div class="back-link">
+      <a href="/">← Voltar à página inicial</a>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const data = {
+        name: document.getElementById('name').value,
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        role: document.getElementById('role').value
+      };
+
+      // Enviar dados para o servidor
+      fetch('/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      })
         .then(response => response.json())
         .then(result => {
-          if(result.success){
+          if (result.success) {
             alert('Registo efetuado com sucesso!');
             window.location.href = '/login';
           } else {
@@ -101,7 +168,8 @@
         .catch(error => {
           alert('Erro ao comunicar com o servidor: ' + error);
         });
-      });
-    </script>
-  </body>
+    });
+  </script>
+</body>
+
 </html>
