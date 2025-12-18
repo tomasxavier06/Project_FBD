@@ -1,72 +1,78 @@
 <!doctype html>
 <html lang="pt">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Recordes - Estoril Track Manager</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-      :root{ --sidebar-width:60px; }
-      html,body{ height:100%; }
-      body{ margin:0; padding:0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:#fff; color:#333; }
 
-      .sidebar{
-        position:fixed; top:0; left:0; bottom:0; width:var(--sidebar-width); padding: 14px; box-sizing:border-box; z-index:10;
-        background: linear-gradient(180deg, rgba(0,0,0,0.28), rgba(0,0,0,0.18));
-        backdrop-filter: blur(6px); color:#fff; display:flex; flex-direction:column; gap:16px;
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recordes - Estoril Track Manager</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/sidebar.css">
+  <style>
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      background: #fff;
+      color: #333;
+    }
+
+    .content {
+      margin-left: var(--sidebar-width);
+      padding: 40px;
+      transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @media (max-width: 900px) {
+      .content {
+        margin-left: 0;
       }
-      .sidebar nav{ display:flex; flex-direction:column; gap:16px; }
-      .sidebar button{ 
-        background:transparent; border:none; color:rgba(255,255,255,0.95); 
-        cursor:pointer; padding:10px; border-radius:6px; 
-        font-size:16px; transition: background 0.2s;
-        display:flex; align-items:center; justify-content:center;
-      }
-      .sidebar button:hover{ background: rgba(255,255,255,0.06); }
+    }
+  </style>
+</head>
 
-      .content{
-        margin-left: var(--sidebar-width);
-        padding: 40px;
-      }
+<body>
 
-      @media (max-width:900px){ 
-        .sidebar{ display:none; }
-        .content{ margin-left: 0; }
-      }
-    </style>
-  </head>
-  <body>
-
-    <aside class="sidebar" aria-label="Barra lateral">
-      <nav>
-        <button onclick="window.location.href='/'" title="HomePage">
-          <i class="fa-solid fa-house"></i>
-        </button>
-        <button onclick="window.location.href='/events'" title="Eventos Passados">
-          <i class="fa-solid fa-calendar"></i>
-        </button>
-        <button onclick="window.location.href='/records'" title="Recordes da Pista">
-          <i class="fa-solid fa-ranking-star"></i>
-        </button>
-        <button onclick="window.location.href='/pilots'" title="Pilotos">
-          <i class="fa-solid fa-users"></i>
-        </button>
-        <button onclick="window.location.href='/teams'" title="Equipas">
-          <i class="fa-solid fa-warehouse"></i>
-        </button>
-      </nav>
-      <div style="margin-top:auto; display:flex; align-items:center; justify-content:center;">
-        <button onclick="window.location.href='/login'" title="Login"
-           style="background:transparent; border:none; color:rgba(255,255,255,0.95); cursor:pointer; padding:10px; border-radius:6px; font-size:16px;">
-          <i class="fa-solid fa-user"></i>
-        </button>
-      </div>
-    </aside>
-
-    <div class="content">
-      <h1>Recordes da Pista</h1>
-      <p>Conteúdo da página de recordes em desenvolvimento...</p>
+  <aside class="sidebar" aria-label="Barra lateral">
+    <nav>
+      <button class="sidebar-btn" onclick="window.location.href='/'">
+        <i class="fa-solid fa-house"></i>
+        <span>Início</span>
+      </button>
+      <button class="sidebar-btn" onclick="window.location.href='/events'">
+        <i class="fa-solid fa-calendar"></i>
+        <span>Eventos</span>
+      </button>
+      <button class="sidebar-btn" onclick="window.location.href='/records'">
+        <i class="fa-solid fa-ranking-star"></i>
+        <span>Recordes</span>
+      </button>
+      <button class="sidebar-btn" onclick="window.location.href='/pilots'">
+        <i class="fa-solid fa-users"></i>
+        <span>Pilotos</span>
+      </button>
+      <button class="sidebar-btn" onclick="window.location.href='/teams'">
+        <i class="fa-solid fa-warehouse"></i>
+        <span>Equipas</span>
+      </button>
+    </nav>
+    <div class="sidebar-bottom">
+      <button class="sidebar-btn" onclick="window.location.href='/login'">
+        <i class="fa-solid fa-user"></i>
+        <span>Login</span>
+      </button>
     </div>
+  </aside>
 
-  </body>
+  <div class="content">
+    <h1>Recordes da Pista</h1>
+    <p>Conteúdo da página de recordes em desenvolvimento...</p>
+  </div>
+
+</body>
+
 </html>
