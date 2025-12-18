@@ -160,11 +160,11 @@ def register():
             )
             id_utilizador = cursor.fetchone()[0]
             
-            if tipo == 'tecnico':
+            if tipo == 'tecnico_de_pista':
                 cursor.execute("INSERT INTO Tecnico_de_Pista (id_utilizador) VALUES (?)", (id_utilizador,))
-            elif tipo == 'Diretor_de_Equipa':
+            elif tipo == 'diretor_de_equipa':
                 cursor.execute("INSERT INTO Diretor_de_Equipa (id_utilizador) VALUES (?)", (id_utilizador,))
-            elif tipo == 'Diretor_de_Corrida':
+            elif tipo == 'diretor_de_corrida':
                 cursor.execute("INSERT INTO Diretor_de_Corrida (id_utilizador) VALUES (?)", (id_utilizador,))
             
             conn.commit()
