@@ -131,7 +131,7 @@ def login():
                     conn.close()
                     return jsonify({'success': True, 'redirect': '/welcomeDC'})
                 conn.close()
-                return jsonify({'success': True, 'redirect': '/hpafterlogin'})
+                return jsonify({'success': False, 'message': 'Utilizador não tem nenhum perfil atribuído!'}), 401
             else:
                 conn.close()
                 return jsonify({'success': False, 'message': 'Username ou password incorretos!'}), 401
