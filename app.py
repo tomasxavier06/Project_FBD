@@ -34,18 +34,81 @@ def homepage():
 
 @app.route('/pilots')
 def pilots():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Piloto")
-    pilotos = cursor.fetchall()
-    conn.close()
-    return render_template('pilots.html', pilotos=pilotos)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        pesquisa = request.args.get('nome_procurado')
+        coluna = request.args.get('coluna', 'nome')
+        ordem = request.args.get('ordem', 'asc')
+
+        colunas_validas = ['numero_licenca', 'nome', 'data_nascimento', 'nacionalidade','nome_equipa', 'numero_eventos']
+
+        if coluna not in colunas_validas:
+            coluna = 'nome'
+
+        if ordem.lower() not in ['asc', 'desc']:
+            ordem = 'asc'
+
+        query = """ SELECT P.numero_licenca, P.nome, P.data_nascimento, P.nacionalidade, E.nome AS nome_equipa, P.numero_eventos, P.foto_piloto
+                    FROM Piloto P
+                    LEFT JOIN Equipa E ON P.id_equipa = E.id_equipa """
+        parametros = []
+
+        if pesquisa:
+            query += "WHERE (P.nome LIKE ? OR E.nome LIKE ? OR P.nacionalidade LIKE ?)"
+            parametros.append(f"%{pesquisa}%")
+            parametros.append(f"%{pesquisa}%")
+            parametros.append(f"%{pesquisa}%")
+
+                    
+        query += f" ORDER BY {coluna} {ordem}"
+        
+        cursor.execute(query, tuple(parametros))
+
+        pilotos = cursor.fetchall()
+        conn.close()
+        return render_template('pilots.html', pilotos=pilotos, ordem_atual = ordem, coluna_ativa = coluna, pesquisa_feita = pesquisa )
+    except Exception as e:
+        print(f"erro real: {e}")
+        return "<h3>Não foi possível carregar os pilotos. Tente novamente</h3>"
 
 @app.route('/teams')
 def teams():
-    # Retorna o template teams.html
-    return render_template('teams.html')
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
+        pesquisa = request.args.get('nome_procurado')
+        coluna = request.args.get('coluna', 'nome')
+        ordem = request.args.get('ordem', 'asc')
+
+        colunas_validas = ['id_equipa', 'nome', 'pais', 'ID_utilizador_diretor_de_equipa']
+
+        if coluna not in colunas_validas:
+            coluna = 'nome'
+
+        if ordem.lower() not in ['asc', 'desc']:
+            ordem = 'asc'
+
+        query = " SELECT * FROM Equipa "
+        parametros = []
+
+        if pesquisa:
+            query += "WHERE (nome LIKE ? OR pais LIKE ?)"
+            parametros.append(f"%{pesquisa}%")
+            parametros.append(f"%{pesquisa}%")
+
+        query += f" ORDER BY {coluna} {ordem}"
+        
+        cursor.execute(query, tuple(parametros))
+
+        equipas_lista = cursor.fetchall()
+        conn.close()
+        return render_template('teams.html', equipas = equipas_lista, ordem_atual = ordem, coluna_ativa = coluna, pesquisa_feita = pesquisa )
+    except Exception as e:
+        print(f"erro real: {e}")
+        return "<h3>Não foi possível carregar as equipas. Tente novamente</h3>"
 # Define a rota para a página de eventos
 @app.route('/events')
 def events():
@@ -131,7 +194,7 @@ def login():
                     conn.close()
                     return jsonify({'success': True, 'redirect': '/welcomeDC'})
                 conn.close()
-                return jsonify({'success': False, 'message': 'Utilizador não tem nenhum perfil atribuído!'}), 401
+                return jsonify({'success': True, 'redirect': '/hpafterlogin'})
             else:
                 conn.close()
                 return jsonify({'success': False, 'message': 'Username ou password incorretos!'}), 401
@@ -160,11 +223,11 @@ def register():
             )
             id_utilizador = cursor.fetchone()[0]
             
-            if tipo == 'tecnico_de_pista':
+            if tipo == 'tecnico':
                 cursor.execute("INSERT INTO Tecnico_de_Pista (id_utilizador) VALUES (?)", (id_utilizador,))
-            elif tipo == 'diretor_de_equipa':
+            elif tipo == 'Diretor_de_Equipa':
                 cursor.execute("INSERT INTO Diretor_de_Equipa (id_utilizador) VALUES (?)", (id_utilizador,))
-            elif tipo == 'diretor_de_corrida':
+            elif tipo == 'Diretor_de_Corrida':
                 cursor.execute("INSERT INTO Diretor_de_Corrida (id_utilizador) VALUES (?)", (id_utilizador,))
             
             conn.commit()

@@ -57,16 +57,89 @@
 
     thead th a {
         text-decoration: none; 
-        color: inherit;        /* Faz o link herdar a cor do th (geralmente preto) */
-        display: block;        /* Faz com que toda a área da célula seja clicável */
+        color: inherit;        
+        display: block;       
         width: 100%;
         height: 100%;
     }
 
-    /* Opcional: muda a cor quando passa o rato para o utilizador saber que é clicável */
+   
     thead th a:hover {
-        color: #555;           /* Um cinzento escuro ao passar o rato */
+        color: #555;           
     }
+
+    /* Contentor da pesquisa */
+.search-container {
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+/* Estilo do formulário */
+.search-container form {
+    display: flex;
+    gap: 8px;
+    background-color: #fdfdfd; /* Fundo quase branco para destacar o vermelho */
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-left: 4px solid #cc0000; /* Detalhe lateral em vermelho */
+}
+
+/* Campo de entrada (Input) */
+.search-container input[type="text"] {
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    width: 250px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+/* Quando clicas na caixa de texto */
+.search-container input[type="text"]:focus {
+    border-color: #cc0000;
+    box-shadow: 0 0 5px rgba(204, 0, 0, 0.2);
+}
+
+/* Botão de Pesquisar (Vermelho Racing) */
+.search-container button {
+    padding: 10px 20px;
+    background-color: #cc0000; /* Vermelho forte */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    text-transform: uppercase; /* Dá um aspeto mais profissional/competitivo */
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+}
+
+/* Efeito ao passar o rato (Vermelho mais escuro) */
+.search-container button:hover {
+    background-color: #a30000;
+}
+
+/* Efeito de clique */
+.search-container button:active {
+    transform: scale(0.96);
+}
+
+/* Estilo para o link "Limpar" */
+.search-container form a {
+    text-decoration: none;
+    font-size: 13px;
+    align-self: center;
+    margin-left: 5px;
+    color: #888;
+    transition: color 0.2s;
+}
+
+.search-container form a:hover {
+    color: #cc0000; /* Muda para vermelho ao passar o rato */
+}
   </style>
 </head>
 
@@ -103,58 +176,120 @@
     </div>
   </aside>
 
-  <div class="content">
+<div class="content">
     <h1>Pilotos</h1>
-   <div style="margin-bottom: 20px;">
-      <form action="/pilots" method="GET">
-          <input type="text" name="nome_procurado" placeholder="Pesquisar piloto..." required>
-          <button type="submit">Pesquisar</button>
-      </form>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        
+        <div class="search-container" style="margin-bottom: 0;">
+          <form action="/pilots" method="GET">
+              <input type="text" name="nome_procurado" value="{{ pesquisa_feita if pesquisa_feita }}" placeholder="Pesquisar piloto ou equipa...">
+              <button type="submit">Pesquisar</button>
+              {% if pesquisa_feita %}
+                <a href="/pilots" style="text-decoration: none; font-size: 13px; margin-left: 10px; color: #cc0000;">Limpar Filtro</a>
+              {% endif %}
+          </form>
+        </div>
+
+        <div style="display: flex; border: 1px solid #ddd; border-radius: 5px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            <button id="btn-table" onclick="toggleView('table')" style="padding: 10px 15px; cursor: pointer; border: none; background: #cc0000; color: white; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-list"></i> Tabela
+            </button>
+            <button id="btn-grid" onclick="toggleView('grid')" style="padding: 10px 15px; cursor: pointer; border: none; background: #eee; color: #333; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-grip"></i> Grelha
+            </button>
+        </div>
     </div>
 
-    <table>
-<thead>
-    <tr>
-        <th>
-            <a href="/pilots?coluna=numero_licenca&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}">
-                Licença ↕
-            </a>
-        </th>
+    <div id="table-view">
+        <table>
+            <thead>
+                <tr>
+                    <th>
+                        <a href="/pilots?coluna=numero_licenca&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}" style="color: {{ '#cc0000' if coluna_ativa == 'numero_licenca' else 'inherit' }};">
+                            Licença {% if coluna_ativa == 'numero_licenca' %}{{ '▲' if ordem_atual == 'asc' else '▼' }}{% else %}↕{% endif %}
+                        </a>
+                    </th>
+                    <th>
+                        <a href="/pilots?coluna=nome&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}" style="color: {{ '#cc0000' if coluna_ativa == 'nome' else 'inherit' }};">
+                            Nome {% if coluna_ativa == 'nome' %}{{ '▲' if ordem_atual == 'asc' else '▼' }}{% else %}↕{% endif %}
+                        </a>
+                    </th>
+                    <th>
+                        <a href="/pilots?coluna=data_nascimento&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}" style="color: {{ '#cc0000' if coluna_ativa == 'data_nascimento' else 'inherit' }};">
+                            Data Nascimento {% if coluna_ativa == 'data_nascimento' %}{{ '▲' if ordem_atual == 'asc' else '▼' }}{% else %}↕{% endif %}
+                        </a>
+                    </th>
+                    <th>
+                        <a href="/pilots?coluna=nacionalidade&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}" style="color: {{ '#cc0000' if coluna_ativa == 'nacionalidade' else 'inherit' }};">
+                            Nacionalidade {% if coluna_ativa == 'nacionalidade' %}{{ '▲' if ordem_atual == 'asc' else '▼' }}{% else %}↕{% endif %}
+                        </a>
+                    </th>
+                    <th>
+                        <a href="/pilots?coluna=nome_equipa&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}" style="color: {{ '#cc0000' if coluna_ativa == 'nome_equipa' else 'inherit' }};">
+                            Equipa {% if coluna_ativa == 'nome_equipa' %}{{ '▲' if ordem_atual == 'asc' else '▼' }}{% else %}↕{% endif %}
+                        </a>
+                    </th>
+                    <th>
+                        <a href="/pilots?coluna=numero_eventos&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}" style="color: {{ '#cc0000' if coluna_ativa == 'numero_eventos' else 'inherit' }};">
+                            Eventos {% if coluna_ativa == 'numero_eventos' %}{{ '▲' if ordem_atual == 'asc' else '▼' }}{% else %}↕{% endif %}
+                        </a>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for piloto in pilotos %}
+                <tr>
+                    <td>{{ piloto[0] }}</td>
+                    <td style="font-weight: bold;">{{ piloto[1] }}</td>
+                    <td>{{ piloto[2] }}</td>
+                    <td>{{ piloto[3] }}</td>
+                    <td>{{ piloto[4] }}</td>
+                    <td>{{ piloto[5] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-        <th>
-            <a href="/pilots?coluna=nome&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}">
-                Nome ↕
-            </a>
-        </th>
+    <div id="grid-view" style="display: none;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; margin-top: 20px;">
+            {% for piloto in pilotos %}
+            <div style="background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 20px; text-align: center; border-top: 5px solid #cc0000;">
+                <img src="/static/assets/pilots/{{ piloto[6] if piloto[6] else 'default_pilot.png' }}" 
+                     style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; margin-bottom: 15px; border: 3px solid #f5f5f5;">
+                <h3 style="margin: 10px 0 5px;">{{ piloto[1] }}</h3>
+                <p style="color: #cc0000; font-weight: bold; margin-bottom: 8px; font-size: 0.9em;">{{ piloto[4] }}</p>
+                <div style="font-size: 0.85em; color: #666; line-height: 1.5;">
+                    <i class="fa-solid fa-flag"></i> {{ piloto[3] }}<br>
+                    <i class="fa-solid fa-trophy"></i> {{ piloto[5] }} Eventos
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
 
-        <th>
-            <a href="/pilots?coluna=nacionalidade&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}">
-                Nacionalidade ↕
-            </a>
-        </th>
+<script>
+function toggleView(view) {
+    const tableDiv = document.getElementById('table-view');
+    const gridDiv = document.getElementById('grid-view');
+    const btnTable = document.getElementById('btn-table');
+    const btnGrid = document.getElementById('btn-grid');
 
-        <th>
-            <a href="/pilots?coluna=numero_eventos&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}">
-                Eventos ↕
-            </a>
-        </th>
-        
-        </tr>
-</thead>
-
-      <tbody>
-        {% for piloto in pilotos %}
-        <tr>
-          <td>{{ piloto[0] }}</td>
-          <td>{{ piloto[1] }}</td>
-          <td>{{ piloto[2] }}</td>
-          <td>{{ piloto[3] }}</td>
-          <td>{{ piloto[4] }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+    if (view === 'table') {
+        tableDiv.style.display = 'block';
+        gridDiv.style.display = 'none';
+        btnTable.style.background = '#cc0000'; btnTable.style.color = 'white';
+        btnGrid.style.background = '#eee'; btnGrid.style.color = '#333';
+    } else {
+        tableDiv.style.display = 'none';
+        gridDiv.style.display = 'block';
+        btnGrid.style.background = '#cc0000'; btnGrid.style.color = 'white';
+        btnTable.style.background = '#eee'; btnTable.style.color = '#333';
+    }
+}
+</script>
 
 </body>
 
