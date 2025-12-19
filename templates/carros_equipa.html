@@ -176,6 +176,7 @@
             align-items: center;
             justify-content: center;
             z-index: 1000;
+            padding: 20px;
         }
 
         .modal-overlay.active {
@@ -187,20 +188,20 @@
             border-radius: 12px;
             padding: 30px;
             width: 100%;
-            max-width: 500px;
+            max-width: 550px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
             max-height: 90vh;
             overflow-y: auto;
         }
 
         .modal h2 {
-            margin: 0 0 20px 0;
+            margin: 0 0 24px 0;
             font-size: 20px;
             font-weight: 600;
         }
 
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 18px;
         }
 
         .form-group label {
@@ -219,6 +220,7 @@
             border-radius: 6px;
             font-size: 14px;
             background: #fafafa;
+            box-sizing: border-box;
         }
 
         .form-group input:focus,
@@ -240,9 +242,13 @@
         }
 
         .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            display: flex;
+            gap: 16px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            min-width: 0;
         }
 
         .modal-actions {
