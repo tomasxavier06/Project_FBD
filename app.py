@@ -134,18 +134,216 @@ def welcomeDC():
     conn.close()
     return render_template('WelcomeDC.html')
 
-@app.route('/welcomeDP')
-def welcomeDP():
+@app.route('/welcomeDE')
+def welcomeDE():
     if 'loggedin' not in session:
         return jsonify({'success': False, 'message': 'Precisa fazer login para aceder a esta página!', 'redirect': '/login'}), 401
-    conn=get_db_connection()
-    cursor=conn.cursor()
-    cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?',(session['id'],))
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?', (session['id'],))
     if cursor.fetchone() is None:
         conn.close()
         return redirect('/logout')
+    
+    # Verificar se o diretor já tem uma equipa
+    cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+    equipa = cursor.fetchone()
+    tem_equipa = equipa is not None
     conn.close()
-    return render_template('WelcomeDP.html')
+    
+    return render_template('welcomeDE.html', tem_equipa=tem_equipa, equipa=equipa)
+
+@app.route('/pilotos_equipa')
+def pilotos_equipa():
+    if 'loggedin' not in session:
+        return redirect('/login')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verificar se é diretor de equipa
+    cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?', (session['id'],))
+    if cursor.fetchone() is None:
+        conn.close()
+        return redirect('/logout')
+    
+    # Obter a equipa do diretor
+    cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+    equipa = cursor.fetchone()
+    
+    if equipa is None:
+        conn.close()
+        return redirect('/criar_equipa')
+    
+    # Obter pilotos da equipa
+    cursor.execute('SELECT numero_licenca, nome, data_nascimento, nacionalidade FROM Piloto WHERE id_equipa=?', (equipa[0],))
+    pilotos = cursor.fetchall()
+    conn.close()
+    
+    return render_template('pilotos_equipa.html', equipa=equipa, pilotos=pilotos)
+
+@app.route('/api/piloto', methods=['POST'])
+def adicionar_piloto():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Obter equipa do diretor
+        cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+        equipa = cursor.fetchone()
+        
+        if equipa is None:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
+        
+        cursor.execute(
+            "INSERT INTO Piloto (numero_licenca, nome, data_nascimento, nacionalidade, id_equipa, numero_eventos) VALUES (?, ?, ?, ?, ?, 0)",
+            (data['numero_licenca'], data['nome'], data['data_nascimento'], data['nacionalidade'], equipa[0])
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Piloto adicionado com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/api/piloto/<int:id>', methods=['PUT'])
+def editar_piloto(id):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            "UPDATE Piloto SET nome=?, data_nascimento=?, nacionalidade=? WHERE numero_licenca=?",
+            (data['nome'], data['data_nascimento'], data['nacionalidade'], id)
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Piloto atualizado com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/api/piloto/<int:id>', methods=['DELETE'])
+def remover_piloto(id):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM Piloto WHERE numero_licenca=?", (id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Piloto removido com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/carros_equipa')
+def carros_equipa():
+    if 'loggedin' not in session:
+        return redirect('/login')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verificar se é diretor de equipa
+    cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?', (session['id'],))
+    if cursor.fetchone() is None:
+        conn.close()
+        return redirect('/logout')
+    
+    # Obter a equipa do diretor
+    cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+    equipa = cursor.fetchone()
+    
+    if equipa is None:
+        conn.close()
+        return redirect('/criar_equipa')
+    
+    # Obter carros da equipa
+    cursor.execute('SELECT VIN, modelo, marca, categoria, tipo_motor, potencia, peso FROM Carro WHERE id_equipa=?', (equipa[0],))
+    carros = cursor.fetchall()
+    conn.close()
+    
+    return render_template('carros_equipa.html', equipa=equipa, carros=carros)
+
+@app.route('/api/carro', methods=['POST'])
+def adicionar_carro():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Obter equipa do diretor
+        cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+        equipa = cursor.fetchone()
+        
+        if equipa is None:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
+        
+        cursor.execute(
+            "INSERT INTO Carro (VIN, modelo, marca, categoria, tipo_motor, potencia, peso, id_equipa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (data['vin'], data['modelo'], data['marca'], data['categoria'], data['tipo_motor'], data['potencia'], data['peso'], equipa[0])
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Carro adicionado com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/api/carro/<path:vin>', methods=['PUT'])
+def editar_carro(vin):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            "UPDATE Carro SET modelo=?, marca=?, categoria=?, tipo_motor=?, potencia=?, peso=? WHERE VIN=?",
+            (data['modelo'], data['marca'], data['categoria'], data['tipo_motor'], data['potencia'], data['peso'], vin)
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Carro atualizado com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/api/carro/<path:vin>', methods=['DELETE'])
+def remover_carro(vin):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM Carro WHERE VIN=?", (vin,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Carro removido com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
 
 @app.route('/welcomeTP')
 def welcomeTP():
@@ -187,14 +385,14 @@ def login():
                 if cursor.fetchone():
                     session['role'] = 'Diretor_de_Equipa'
                     conn.close()
-                    return jsonify({'success': True, 'redirect': '/welcomeDP'})
+                    return jsonify({'success': True, 'redirect': '/welcomeDE'})
                 cursor.execute('SELECT * FROM Diretor_de_Corrida WHERE id_utilizador = ?', (id_utilizador,))
                 if cursor.fetchone():
                     session['role'] = 'Diretor_de_Corrida'
                     conn.close()
                     return jsonify({'success': True, 'redirect': '/welcomeDC'})
                 conn.close()
-                return jsonify({'success': True, 'redirect': '/hpafterlogin'})
+                return jsonify({'success': False, 'message': 'Utilizador sem tipo definido. Contacte o administrador.'}), 400
             else:
                 conn.close()
                 return jsonify({'success': False, 'message': 'Username ou password incorretos!'}), 401
@@ -223,12 +421,20 @@ def register():
             )
             id_utilizador = cursor.fetchone()[0]
             
-            if tipo == 'tecnico':
+            print(f"DEBUG: tipo recebido = '{tipo}'")
+            print(f"DEBUG: id_utilizador = {id_utilizador}")
+            
+            if tipo == 'tecnico_de_pista':
+                print("DEBUG: Inserindo em Tecnico_de_Pista")
                 cursor.execute("INSERT INTO Tecnico_de_Pista (id_utilizador) VALUES (?)", (id_utilizador,))
-            elif tipo == 'Diretor_de_Equipa':
+            elif tipo == 'diretor_de_equipa':
+                print("DEBUG: Inserindo em Diretor_de_Equipa")
                 cursor.execute("INSERT INTO Diretor_de_Equipa (id_utilizador) VALUES (?)", (id_utilizador,))
-            elif tipo == 'Diretor_de_Corrida':
+            elif tipo == 'diretor_de_corrida':
+                print("DEBUG: Inserindo em Diretor_de_Corrida")
                 cursor.execute("INSERT INTO Diretor_de_Corrida (id_utilizador) VALUES (?)", (id_utilizador,))
+            else:
+                print(f"DEBUG: TIPO NÃO RECONHECIDO: '{tipo}'")
             
             conn.commit()
             conn.close()

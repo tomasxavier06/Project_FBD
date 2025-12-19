@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="pt">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Carros - Estoril Track Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/sidebar.css">
+    <style>
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+            background: #fff;
+            color: #333;
+        }
+
+        .content {
+            margin-left: var(--sidebar-width);
+            padding: 40px;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @media (max-width: 900px) {
+            .content {
+                margin-left: 0;
+            }
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .page-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .page-header .team-name {
+            color: #666;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: #333;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #222;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .btn-edit {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .btn-edit:hover {
+            background: #eee;
+        }
+
+        .btn-delete {
+            background: #fff;
+            color: #c00;
+            border: 1px solid #fcc;
+        }
+
+        .btn-delete:hover {
+            background: #fff5f5;
+        }
+
+        /* Tabela */
+        .table-container {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 14px 16px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+            font-size: 13px;
+            color: #555;
+            border-bottom: 1px solid #eee;
+        }
+
+        td {
+            font-size: 14px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: #f8f8f8;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+
+        .empty-state p {
+            margin: 0;
+            font-size: 15px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #fff;
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin: 0 0 20px 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #fafafa;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #999;
+            background: #fff;
+        }
+
+        /* Esconder setas do input number */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+        }
+
+        .btn-cancel {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-cancel:hover {
+            background: #eee;
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar" aria-label="Barra lateral">
+        <nav>
+            <button class="sidebar-btn" onclick="window.location.href='/welcomeDE'">
+                <i class="fa-solid fa-house"></i>
+                <span>Página Inicial</span>
+            </button>
+        </nav>
+        <div class="sidebar-bottom">
+            <button class="sidebar-btn settings" onclick="window.location.href='/settings'">
+                <i class="fa-solid fa-gear"></i>
+                <span>Definições</span>
+            </button>
+            <button class="sidebar-btn logout" onclick="window.location.href='/logout'">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Terminar Sessão</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h1>Carros</h1>
+                <p class="team-name">{{ equipa[1] }}</p>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModal()">
+                <i class="fa-solid fa-plus"></i> Adicionar Carro
+            </button>
+        </div>
+
+        <div class="table-container">
+            {% if carros %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>VIN</th>
+                        <th>Marca</th>
+                        <th>Modelo</th>
+                        <th>Categoria</th>
+                        <th>Motor</th>
+                        <th>Potência (cv)</th>
+                        <th>Peso (kg)</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for carro in carros %}
+                    <tr>
+                        <td>{{ carro[0] }}</td>
+                        <td>{{ carro[2] }}</td>
+                        <td>{{ carro[1] }}</td>
+                        <td>{{ carro[3] }}</td>
+                        <td>{{ carro[4] }}</td>
+                        <td>{{ carro[5] }}</td>
+                        <td>{{ carro[6] }}</td>
+                        <td class="actions">
+                            <button class="btn btn-sm btn-edit"
+                                onclick="editarCarro('{{ carro[0] }}', '{{ carro[1] }}', '{{ carro[2] }}', '{{ carro[3] }}', '{{ carro[4] }}', {{ carro[5] }}, {{ carro[6] }})">
+                                <i class="fa-solid fa-pen"></i> Editar
+                            </button>
+                            <button class="btn btn-sm btn-delete" onclick="removerCarro('{{ carro[0] }}')">
+                                <i class="fa-solid fa-trash"></i> Remover
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-car"></i>
+                <p>Ainda não tem carros na equipa</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal Adicionar/Editar Carro -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2 id="modalTitle">Adicionar Carro</h2>
+            <form id="carroForm">
+                <input type="hidden" id="editMode" value="false">
+                <input type="hidden" id="originalVin">
+                <div class="form-group">
+                    <label for="vin">VIN</label>
+                    <input type="text" id="vin" name="vin" maxlength="50" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="marca">Marca</label>
+                        <input type="text" id="marca" name="marca" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="modelo">Modelo</label>
+                        <input type="text" id="modelo" name="modelo" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="categoria">Categoria</label>
+                    <input type="text" id="categoria" name="categoria" placeholder="Ex: GT3, LMP2, Turismo" required>
+                </div>
+                <div class="form-group">
+                    <label for="tipo_motor">Tipo de Motor</label>
+                    <input type="text" id="tipo_motor" name="tipo_motor" placeholder="Ex: V8, V6 Turbo, Elétrico"
+                        required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="potencia">Potência (cv)</label>
+                        <input type="number" id="potencia" name="potencia" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="peso">Peso (kg)</label>
+                        <input type="number" id="peso" name="peso" min="1" required>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="fecharModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function abrirModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('modalTitle').textContent = 'Adicionar Carro';
+            document.getElementById('editMode').value = 'false';
+            document.getElementById('carroForm').reset();
+            document.getElementById('vin').disabled = false;
+        }
+
+        function fecharModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        function editarCarro(vin, modelo, marca, categoria, tipoMotor, potencia, peso) {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('modalTitle').textContent = 'Editar Carro';
+            document.getElementById('editMode').value = 'true';
+            document.getElementById('originalVin').value = vin;
+            document.getElementById('vin').value = vin;
+            document.getElementById('vin').disabled = true;
+            document.getElementById('modelo').value = modelo;
+            document.getElementById('marca').value = marca;
+            document.getElementById('categoria').value = categoria;
+            document.getElementById('tipo_motor').value = tipoMotor;
+            document.getElementById('potencia').value = potencia;
+            document.getElementById('peso').value = peso;
+        }
+
+        function removerCarro(vin) {
+            if (confirm('Tem a certeza que deseja remover este carro?')) {
+                fetch('/api/carro/' + encodeURIComponent(vin), {
+                    method: 'DELETE'
+                })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            location.reload();
+                        } else {
+                            alert('Erro: ' + result.message);
+                        }
+                    })
+                    .catch(error => alert('Erro: ' + error));
+            }
+        }
+
+        document.getElementById('carroForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const editMode = document.getElementById('editMode').value === 'true';
+            const data = {
+                vin: document.getElementById('vin').value,
+                modelo: document.getElementById('modelo').value,
+                marca: document.getElementById('marca').value,
+                categoria: document.getElementById('categoria').value,
+                tipo_motor: document.getElementById('tipo_motor').value,
+                potencia: parseInt(document.getElementById('potencia').value),
+                peso: parseInt(document.getElementById('peso').value)
+            };
+
+            const url = editMode ? '/api/carro/' + encodeURIComponent(document.getElementById('originalVin').value) : '/api/carro';
+            const method = editMode ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + result.message);
+                    }
+                })
+                .catch(error => alert('Erro: ' + error));
+        });
+
+        // Fechar modal ao clicar fora
+        document.getElementById('modalOverlay').addEventListener('click', function (e) {
+            if (e.target === this) fecharModal();
+        });
+    </script>
+</body>
+
+</html>
