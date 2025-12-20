@@ -7,7 +7,6 @@
 
 
 
-2-Adicionar nome ao register
 
 
 precisas de ter queries, triggers, stored procedures, UDFs e views.
@@ -19,5 +18,8 @@ Capacidades de cada role:
 Diretor de Equipa:Adicionar Equipa(max 1), Adicionar,Editar,Remover Pilotos, Adicionar,Editar,Remover Carros, Inscrever em futuros eventos, Ver os Eventos atuais em que está a participar
 Diretor de Corrida:Criar Eventos, Criar sessões para os eventos, alterar estado das sessoes/eventos(por iniciar, a correr, terminado),anular voltas,etc a pensar.
 Tecnico de Pista:Aceder as sessoes a decorrer, adicionar voltas aos carros da sessao, adicionar avisos e/ou penalizacoes.
+
+
+adicionar a capacidade de ver os pilotos e carros da equipa quando carregas nela
 
 

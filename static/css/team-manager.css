@@ -1,0 +1,146 @@
+/* Team Manager Styles - For WelcomeDE and team management pages */
+.content {
+    margin-left: var(--sidebar-width);
+    padding: 40px;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 900px) {
+    .content {
+        margin-left: 0;
+    }
+}
+
+/* No team container */
+.no-team-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #f5f5f5;
+}
+
+.no-team-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 50px;
+    max-width: 450px;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.no-team-card i.main-icon {
+    font-size: 48px;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+.no-team-card h1 {
+    font-size: 24px;
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.no-team-card p {
+    color: #666;
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 28px;
+}
+
+.btn-create {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background: #333;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-create:hover {
+    background: #222;
+}
+
+.logout-link {
+    display: block;
+    margin-top: 18px;
+    color: #888;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.logout-link:hover {
+    color: #333;
+}
+
+/* Team header */
+.team-header {
+    background: #f8f8f8;
+    border: 1px solid #eee;
+    padding: 25px 30px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.team-header h1 {
+    margin: 0 0 6px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+}
+
+.team-header p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+/* Dashboard grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.dashboard-card {
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 22px;
+    transition: all 0.2s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.dashboard-card:hover {
+    background: #f5f5f5;
+    border-color: #ddd;
+}
+
+.dashboard-card i {
+    font-size: 24px;
+    color: #555;
+    margin-bottom: 12px;
+}
+
+.dashboard-card h3 {
+    margin: 0 0 6px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.dashboard-card p {
+    margin: 0;
+    color: #777;
+    font-size: 13px;
+}

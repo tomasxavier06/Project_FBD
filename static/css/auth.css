@@ -1,0 +1,225 @@
+/* Authentication Styles - Login and Register pages */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    background: #ffffff;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Login page specific */
+body.login-page {
+    overflow: hidden;
+}
+
+.login-container {
+    background: #eee1e1;
+    border-radius: 12px;
+    padding: 35px 30px;
+    max-width: 340px;
+    width: 100%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.logo {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.logo img {
+    max-width: 160px;
+    height: auto;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+}
+
+h1 {
+    text-align: center;
+    font-size: 22px;
+    margin-bottom: 25px;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: #555;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"] {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background: #fafafa;
+    color: #333;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus {
+    outline: none;
+    border-color: #667eea;
+    background: #fff;
+}
+
+input::placeholder {
+    color: #aaa;
+}
+
+select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+}
+
+.btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary {
+    background: transparent;
+    border: 1px solid #ddd;
+    color: #555;
+}
+
+.btn-secondary:hover {
+    background: #f8f8f8;
+    border-color: #bbb;
+}
+
+.divider {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+    font-size: 13px;
+    color: #999;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background: #e0e0e0;
+}
+
+.divider::before {
+    left: 0;
+}
+
+.divider::after {
+    right: 0;
+}
+
+.back-link {
+    text-align: center;
+    margin-top: 18px;
+}
+
+.back-link a {
+    color: #888;
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.3s;
+}
+
+.back-link a:hover {
+    color: #333;
+}
+
+/* Register page specific */
+.card {
+    background: #f6f6f8;
+    border-radius: 12px;
+    padding: 30px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+}
+
+.card .logo {
+    margin-bottom: 18px;
+}
+
+.card .logo img {
+    max-width: 140px;
+}
+
+.card h1 {
+    margin-bottom: 18px;
+    font-size: 20px;
+}
+
+.card .form-group {
+    margin-bottom: 14px;
+}
+
+.card label {
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+.card input,
+.card select {
+    padding: 10px 12px;
+    border-radius: 8px;
+}
+
+.card .btn {
+    border-radius: 8px;
+    background: #4a6cf7;
+    margin-top: 10px;
+}
+
+.card .back-link {
+    margin-top: 12px;
+}
+
+.card .back-link a {
+    color: #666;
+}

@@ -1,0 +1,263 @@
+/* Dashboard Styles - Welcome pages for authenticated users */
+:root {
+    --sidebar-width: 60px;
+    --sidebar-expanded: 220px;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    background: #fff;
+    color: #000;
+    overflow: hidden;
+}
+
+/* Hero section styles (for WelcomeDC) */
+.hero {
+    position: relative;
+    height: 100vh;
+    min-height: 560px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slides {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+}
+
+.slide {
+    position: absolute;
+    inset: 0;
+    background-position: center;
+    background-size: cover;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+    will-change: opacity;
+}
+
+.slide.active {
+    opacity: 1;
+}
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45));
+    z-index: 3;
+}
+
+.logo-wrap {
+    position: relative;
+    z-index: 4;
+    text-align: center;
+}
+
+.logo-wrap img {
+    width: 520px;
+    max-width: 85vw;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    filter: drop-shadow(0 8px 30px rgba(2, 6, 23, 0.6));
+}
+
+.controls {
+    position: relative;
+    z-index: 5;
+    margin-top: 18px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+}
+
+.dot.active {
+    background: #fff;
+}
+
+.below {
+    padding: 40px 16px;
+    text-align: center;
+    color: #222;
+    background: #fff;
+}
+
+/* Cards section for dashboard */
+.cards-section {
+    position: fixed;
+    top: 0;
+    left: var(--sidebar-width);
+    right: 0;
+    bottom: 0;
+    padding: 30px 40px 40px;
+    box-sizing: border-box;
+    background: linear-gradient(145deg, #e8eef5 0%, #d4dce8 50%, #c0cad8 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.welcome-banner {
+    width: 100%;
+    max-width: 1000px;
+    margin-bottom: 24px;
+    padding: 20px 0;
+}
+
+.welcome-banner h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.welcome-banner h1 span {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.cards-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    max-width: 1000px;
+    width: 100%;
+    flex: 1;
+    gap: 20px;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.card:nth-child(1) {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+}
+
+.card:nth-child(2) {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+}
+
+.card:nth-child(3) {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+}
+
+.card:nth-child(4) {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0);
+    transition: background 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    border-color: #3498db;
+}
+
+.card:hover::before {
+    background: transparent;
+}
+
+.card>* {
+    position: relative;
+    z-index: 1;
+}
+
+.card i {
+    font-size: 36px;
+    color: #2c3e50;
+    margin-bottom: 12px;
+    transition: color 0.3s ease;
+}
+
+.card:hover i {
+    color: #3498db;
+}
+
+.card h3 {
+    font-size: 18px;
+    margin: 8px 0 6px;
+    color: #2c3e50;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+}
+
+.card p {
+    font-size: 13px;
+    color: #6c757d;
+    margin: 0;
+    line-height: 1.5;
+    font-weight: 400;
+}
+
+@media (max-width: 540px) {
+    .logo-wrap img {
+        width: 320px;
+        max-width: 80vw;
+    }
+}
+
+@media (max-width: 900px) {
+    .cards-section {
+        left: 0;
+        padding: 20px;
+    }
+
+    .cards-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: repeat(4, 1fr);
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    .card h3 {
+        font-size: 20px;
+    }
+
+    .card i {
+        font-size: 40px;
+    }
+}

@@ -7,140 +7,8 @@
   <title>Equipas - Estoril Track Manager</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="/static/css/sidebar.css">
-  <style>
-    html,
-    body {
-      height: 100%;
-    }
-
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-      background: #fff;
-      color: #333;
-    }
-
-    .content {
-      margin-left: var(--sidebar-width);
-      padding: 40px;
-      transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-
-    th,
-    td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #ddd;
-    }
-
-    th {
-      background: #f5f5f5;
-      font-weight: 600;
-    }
-
-    tr:hover {
-      background: #f9f9f9;
-    }
-
-    @media (max-width: 900px) {
-      .content {
-        margin-left: 0;
-      }
-    }
-
-    thead th a {
-        text-decoration: none; 
-        color: inherit;        
-        display: block;       
-        width: 100%;
-        height: 100%;
-    }
-
-   
-    thead th a:hover {
-        color: #555;           
-    }
-
-    /* Contentor da pesquisa */
-.search-container {
-    margin-bottom: 25px;
-    display: flex;
-    justify-content: flex-start;
-}
-
-/* Estilo do formulário */
-.search-container form {
-    display: flex;
-    gap: 8px;
-    background-color: #fdfdfd; /* Fundo quase branco para destacar o vermelho */
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border-left: 4px solid #cc0000; /* Detalhe lateral em vermelho */
-}
-
-/* Campo de entrada (Input) */
-.search-container input[type="text"] {
-    padding: 10px 15px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 14px;
-    width: 250px;
-    outline: none;
-    transition: all 0.3s ease;
-}
-
-/* Quando clicas na caixa de texto */
-.search-container input[type="text"]:focus {
-    border-color: #cc0000;
-    box-shadow: 0 0 5px rgba(204, 0, 0, 0.2);
-}
-
-/* Botão de Pesquisar (Vermelho Racing) */
-.search-container button {
-    padding: 10px 20px;
-    background-color: #cc0000; /* Vermelho forte */
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-weight: bold;
-    text-transform: uppercase; /* Dá um aspeto mais profissional/competitivo */
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    transition: background-color 0.3s, transform 0.1s;
-}
-
-/* Efeito ao passar o rato (Vermelho mais escuro) */
-.search-container button:hover {
-    background-color: #a30000;
-}
-
-/* Efeito de clique */
-.search-container button:active {
-    transform: scale(0.96);
-}
-
-/* Estilo para o link "Limpar" */
-.search-container form a {
-    text-decoration: none;
-    font-size: 13px;
-    align-self: center;
-    margin-left: 5px;
-    color: #888;
-    transition: color 0.2s;
-}
-
-.search-container form a:hover {
-    color: #cc0000; /* Muda para vermelho ao passar o rato */
-}
-  </style>
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/tables.css">
 </head>
 
 <body>
@@ -180,53 +48,55 @@
     <h1>Equipas</h1>
     <div class="search-container">
       <form action="/teams" method="GET">
-          <input type="text" name="nome_procurado" value="{{ pesquisa_feita if pesquisa_feita }}" placeholder="Pesquisar equipa..." required>
-          <button type="submit">Pesquisar</button>
-          <a href="/teams" style="text-decoration: none; font-size: 12px; align-self: center; margin-left: 10px; color: #666;">Limpar</a>
+        <input type="text" name="nome_procurado" value="{{ pesquisa_feita if pesquisa_feita }}"
+          placeholder="Pesquisar equipa..." required>
+        <button type="submit">Pesquisar</button>
+        <a href="/teams"
+          style="text-decoration: none; font-size: 12px; align-self: center; margin-left: 10px; color: #666;">Limpar</a>
       </form>
     </div>
 
-  <table>
-<thead>
-    <tr>
-        <th>
-            <a href="/teams?coluna=id_equipa&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}" 
-               style="color: {{ '#cc0000' if coluna_ativa == 'id_equipa' else 'inherit' }};">
-                ID Equipa 
-                {% if coluna_ativa == 'id_equipa' %}
-                    {{ '▲' if ordem_atual == 'asc' else '▼' }}
-                {% else %}
-                    ↕
-                {% endif %}
+    <table>
+      <thead>
+        <tr>
+          <th>
+            <a href="/teams?coluna=id_equipa&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}"
+              style="color: {{ '#cc0000' if coluna_ativa == 'id_equipa' else 'inherit' }};">
+              ID Equipa
+              {% if coluna_ativa == 'id_equipa' %}
+              {{ '▲' if ordem_atual == 'asc' else '▼' }}
+              {% else %}
+              ↕
+              {% endif %}
             </a>
-        </th>
+          </th>
 
-        <th>
-            <a href="/teams?coluna=nome&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}" 
-               style="color: {{ '#cc0000' if coluna_ativa == 'nome' else 'inherit' }};">
-                Nome 
-                {% if coluna_ativa == 'nome' %}
-                    {{ '▲' if ordem_atual == 'asc' else '▼' }}
-                {% else %}
-                    ↕
-                {% endif %}
+          <th>
+            <a href="/teams?coluna=nome&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}"
+              style="color: {{ '#cc0000' if coluna_ativa == 'nome' else 'inherit' }};">
+              Nome
+              {% if coluna_ativa == 'nome' %}
+              {{ '▲' if ordem_atual == 'asc' else '▼' }}
+              {% else %}
+              ↕
+              {% endif %}
             </a>
-        </th>
+          </th>
 
-        <th>
-            <a href="/teams?coluna=pais&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}" 
-               style="color: {{ '#cc0000' if coluna_ativa == 'pais' else 'inherit' }};">
-                País 
-                {% if coluna_ativa == 'pais' %}
-                    {{ '▲' if ordem_atual == 'asc' else '▼' }}
-                {% else %}
-                    ↕
-                {% endif %}
+          <th>
+            <a href="/teams?coluna=pais&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}"
+              style="color: {{ '#cc0000' if coluna_ativa == 'pais' else 'inherit' }};">
+              País
+              {% if coluna_ativa == 'pais' %}
+              {{ '▲' if ordem_atual == 'asc' else '▼' }}
+              {% else %}
+              ↕
+              {% endif %}
             </a>
-        </th>
+          </th>
 
         </tr>
-</thead>
+      </thead>
 
       <tbody>
         {% for equipa in equipas %}
@@ -238,7 +108,7 @@
         {% endfor %}
       </tbody>
     </table>
-</div>
+  </div>
 
 
 </body>
