@@ -9,13 +9,35 @@
   <link rel="stylesheet" href="/static/css/tables.css">
 </head>
 <body>
-  <aside class="sidebar">
+  <aside class="sidebar" aria-label="Barra lateral">
     <nav>
-      <button class="sidebar-btn" onclick="window.location.href='/'"><i class="fa-solid fa-house"></i><span>Início</span></button>
-      <button class="sidebar-btn active" onclick="window.location.href='/events'"><i class="fa-solid fa-calendar"></i><span>Eventos</span></button>
-      <button class="sidebar-btn" onclick="window.location.href='/pilots'"><i class="fa-solid fa-users"></i><span>Pilotos</span></button>
-      <button class="sidebar-btn" onclick="window.location.href='/teams'"><i class="fa-solid fa-warehouse"></i><span>Equipas</span></button>
+      <button class="sidebar-btn" onclick="window.location.href='/'">
+        <i class="fa-solid fa-house"></i>
+        <span>Início</span>
+      </button>
+      <button class="sidebar-btn" onclick="window.location.href='/events'">
+        <i class="fa-solid fa-calendar"></i>
+        <span>Eventos</span>
+      </button>
+      <button class="sidebar-btn" onclick="window.location.href='/records'">
+        <i class="fa-solid fa-ranking-star"></i>
+        <span>Recordes</span>
+      </button>
+      <button class="sidebar-btn" onclick="window.location.href='/pilots'">
+        <i class="fa-solid fa-users"></i>
+        <span>Pilotos</span>
+      </button>
+      <button class="sidebar-btn" onclick="window.location.href='/teams'">
+        <i class="fa-solid fa-warehouse"></i>
+        <span>Equipas</span>
+      </button>
     </nav>
+    <div class="sidebar-bottom">
+      <button class="sidebar-btn" onclick="window.location.href='/login'">
+        <i class="fa-solid fa-user"></i>
+        <span>Login</span>
+      </button>
+    </div>
   </aside>
 
   <div class="content">
