@@ -4,17 +4,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Estoril Track Manager</title>
+  <title>Estoril Track Manager - Diretor de Corrida</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="/static/css/sidebar.css">
-  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/team-manager.css">
 </head>
 
 <body>
-
   <aside class="sidebar" aria-label="Barra lateral">
-    <nav>
-    </nav>
     <div class="sidebar-bottom">
       <button class="sidebar-btn settings" onclick="window.location.href='/settings'">
         <i class="fa-solid fa-gear"></i>
@@ -26,34 +24,31 @@
       </button>
     </div>
   </aside>
-  <section class="cards-section">
-    <div class="welcome-banner">
-      <h1>Bem-vindo, <span>{{ username }}</span></h1>
-    </div>
-    <div class="cards-container">
-      <div class="card" onclick="window.location.href='/events'">
-        <i class="fa-solid fa-calendar"></i>
-        <h3>Eventos</h3>
-        <p>Consulte os eventos passados</p>
-      </div>
-      <div class="card" onclick="window.location.href='/records'">
-        <i class="fa-solid fa-ranking-star"></i>
-        <h3>Recordes</h3>
-        <p>Veja os recordes da pista</p>
-      </div>
-      <div class="card" onclick="window.location.href='/pilots'">
-        <i class="fa-solid fa-users"></i>
-        <h3>Pilotos</h3>
-        <p>Conheça os pilotos</p>
-      </div>
-      <div class="card" onclick="window.location.href='/teams'">
-        <i class="fa-solid fa-warehouse"></i>
-        <h3>Equipas</h3>
-        <p>Explore as equipas</p>
-      </div>
-    </div>
-  </section>
 
+  <div class="content">
+    <div class="team-header">
+      <h1>Bem-vindo, {{ username }}</h1>
+      <p><i class="fa-solid fa-flag-checkered"></i> Painel de Diretor de Corrida</p>
+    </div>
+
+    <div class="dashboard-grid">
+      <a href="/criar_evento" class="dashboard-card">
+        <i class="fa-solid fa-calendar-plus"></i>
+        <h3>Criar Evento</h3>
+        <p>Criar um novo evento na pista</p>
+      </a>
+      <a href="/gerir_eventos" class="dashboard-card">
+        <i class="fa-solid fa-calendar-check"></i>
+        <h3>Gerir Eventos</h3>
+        <p>Editar ou cancelar eventos existentes</p>
+      </a>
+      <a href="/eventos_passados" class="dashboard-card">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <h3>Eventos Passados</h3>
+        <p>Rever histórico de eventos anteriores</p>
+      </a>
+    </div>
+  </div>
 
 </body>
 

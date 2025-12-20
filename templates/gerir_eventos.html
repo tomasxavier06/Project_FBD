@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="pt">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gerir Eventos - Estoril Track Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/sidebar.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/management.css">
+</head>
+
+<body>
+    <aside class="sidebar" aria-label="Barra lateral">
+        <nav>
+            <button class="sidebar-btn" onclick="window.location.href='/welcomeDC'">
+                <i class="fa-solid fa-house"></i>
+                <span>Página Inicial</span>
+            </button>
+        </nav>
+        <div class="sidebar-bottom">
+            <button class="sidebar-btn settings" onclick="window.location.href='/settings'">
+                <i class="fa-solid fa-gear"></i>
+                <span>Definições</span>
+            </button>
+            <button class="sidebar-btn logout" onclick="window.location.href='/logout'">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Terminar Sessão</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h1><i class="fa-solid fa-calendar-check"></i> Gerir Eventos</h1>
+                <p class="team-name">Editar ou cancelar eventos ativos</p>
+            </div>
+            <a href="/criar_evento" class="btn btn-primary">
+                <i class="fa-solid fa-plus"></i> Novo Evento
+            </a>
+        </div>
+
+        <div class="search-container">
+            <form action="/gerir_eventos" method="GET">
+                <input type="text" name="nome_procurado" value="{{ pesquisa_feita if pesquisa_feita }}"
+                    placeholder="Pesquisar por nome ou tipo...">
+                <button type="submit">Pesquisar</button>
+                {% if pesquisa_feita %}
+                <a href="/gerir_eventos">Limpar</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="table-container">
+            {% if eventos %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Tipo</th>
+                        <th>Data Início</th>
+                        <th>Data Fim</th>
+                        <th>Estado</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for evento in eventos %}
+                    <tr>
+                        <td style="font-weight: bold;">{{ evento[1] }}</td>
+                        <td>{{ evento[2] }}</td>
+                        <td>{{ evento[3] }}</td>
+                        <td>{{ evento[4] }}</td>
+                        <td>
+                            <span class="status-badge status-{{ evento[5]|lower|replace(' ', '-') }}">
+                                {{ evento[5] }}
+                            </span>
+                        </td>
+                        <td class="actions">
+                            <button class="btn btn-sm btn-edit" data-id="{{ evento[0] }}" data-nome="{{ evento[1] }}"
+                                data-tipo="{{ evento[2] }}" data-inicio="{{ evento[3] }}" data-fim="{{ evento[4] }}"
+                                data-status="{{ evento[5] }}" onclick="editarEvento(this)">
+                                <i class="fa-solid fa-pen"></i> Editar
+                            </button>
+                            <button class="btn btn-sm btn-status" data-id="{{ evento[0] }}"
+                                data-status="{{ evento[5] }}" onclick="alterarStatus(this)">
+                                <i class="fa-solid fa-rotate"></i> Estado
+                            </button>
+                            <button class="btn btn-sm btn-delete" data-id="{{ evento[0] }}"
+                                onclick="cancelarEvento(this)">
+                                <i class="fa-solid fa-ban"></i> Cancelar
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-calendar-xmark"></i>
+                <p>Nenhum evento ativo encontrado</p>
+                <a href="/criar_evento" class="btn btn-primary" style="margin-top: 15px;">
+                    <i class="fa-solid fa-plus"></i> Criar Primeiro Evento
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal Editar Evento -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2 id="modalTitle">Editar Evento</h2>
+            <form id="eventoForm">
+                <input type="hidden" id="eventoId">
+                <div class="form-group">
+                    <label for="nome">Nome do Evento</label>
+                    <input type="text" id="nome" name="nome" required />
+                </div>
+                <div class="form-group">
+                    <label for="tipo">Tipo de Evento</label>
+                    <select id="tipo" name="tipo" required>
+                        <option value="Corrida">Corrida</option>
+                        <option value="Treino Livre">Treino Livre</option>
+                        <option value="Qualificação">Qualificação</option>
+                        <option value="Teste Privado">Teste Privado</option>
+                        <option value="Track Day">Track Day</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="data_inicio">Data de Início</label>
+                        <input type="date" id="data_inicio" name="data_inicio" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="data_fim">Data de Fim</label>
+                        <input type="date" id="data_fim" name="data_fim" required />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="status">Estado</label>
+                    <select id="status" name="status" required>
+                        <option value="Por Iniciar">Por Iniciar</option>
+                        <option value="A Decorrer">A Decorrer</option>
+                        <option value="Concluído">Concluído</option>
+                        <option value="Cancelado">Cancelado</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="fecharModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Alterar Estado -->
+    <div class="modal-overlay" id="statusModalOverlay">
+        <div class="modal">
+            <h2>Alterar Estado do Evento</h2>
+            <input type="hidden" id="statusEventoId">
+            <div class="status-options">
+                <button type="button" class="status-option" data-status="Por Iniciar" onclick="selecionarStatus(this)">
+                    <i class="fa-solid fa-clock"></i>
+                    <span>Por Iniciar</span>
+                </button>
+                <button type="button" class="status-option" data-status="A Decorrer" onclick="selecionarStatus(this)">
+                    <i class="fa-solid fa-play"></i>
+                    <span>A Decorrer</span>
+                </button>
+                <button type="button" class="status-option" data-status="Concluído" onclick="selecionarStatus(this)">
+                    <i class="fa-solid fa-flag-checkered"></i>
+                    <span>Concluído</span>
+                </button>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-cancel" onclick="fecharStatusModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .search-container {
+            margin-bottom: 20px;
+            display: flex;
+        }
+
+        .search-container form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-container input[type="text"] {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 280px;
+        }
+
+        .search-container input[type="text"]:focus {
+            outline: none;
+            border-color: #999;
+        }
+
+        .search-container button {
+            padding: 10px 18px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .search-container button:hover {
+            background: #222;
+        }
+
+        .search-container a {
+            color: #888;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .search-container a:hover {
+            color: #333;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-por-iniciar {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .status-a-decorrer {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-concluído {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-cancelado {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .btn-status {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #bbdefb;
+        }
+
+        .btn-status:hover {
+            background: #bbdefb;
+        }
+
+        .status-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .status-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .status-option:hover {
+            background: #f0f0f0;
+            border-color: #999;
+        }
+
+        .status-option i {
+            font-size: 18px;
+            color: #555;
+        }
+
+        .status-option span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #fafafa;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: #999;
+            background: #fff;
+        }
+
+        .table-container.scrollable {
+            overflow-x: auto;
+        }
+    </style>
+
+    <script>
+        function editarEvento(btn) {
+            const id = btn.dataset.id;
+            const nome = btn.dataset.nome;
+            const tipo = btn.dataset.tipo;
+            const inicio = btn.dataset.inicio;
+            const fim = btn.dataset.fim;
+            const status = btn.dataset.status;
+
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('eventoId').value = id;
+            document.getElementById('nome').value = nome;
+            document.getElementById('tipo').value = tipo;
+            document.getElementById('data_inicio').value = inicio;
+            document.getElementById('data_fim').value = fim;
+            document.getElementById('status').value = status;
+        }
+
+        function fecharModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        function alterarStatus(btn) {
+            const id = btn.dataset.id;
+            document.getElementById('statusEventoId').value = id;
+            document.getElementById('statusModalOverlay').classList.add('active');
+        }
+
+        function fecharStatusModal() {
+            document.getElementById('statusModalOverlay').classList.remove('active');
+        }
+
+        function selecionarStatus(btn) {
+            const id = document.getElementById('statusEventoId').value;
+            const status = btn.dataset.status;
+
+            fetch('/api/evento/' + id + '/status', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: status })
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + result.message);
+                    }
+                })
+                .catch(error => alert('Erro: ' + error));
+        }
+
+        function cancelarEvento(btn) {
+            const id = btn.dataset.id;
+            if (confirm('Tem a certeza que deseja cancelar este evento? Esta ação não pode ser revertida.')) {
+                fetch('/api/evento/' + id, {
+                    method: 'DELETE'
+                })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            location.reload();
+                        } else {
+                            alert('Erro: ' + result.message);
+                        }
+                    })
+                    .catch(error => alert('Erro: ' + error));
+            }
+        }
+
+        document.getElementById('eventoForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const id = document.getElementById('eventoId').value;
+            const data = {
+                nome: document.getElementById('nome').value,
+                tipo: document.getElementById('tipo').value,
+                data_inicio: document.getElementById('data_inicio').value,
+                data_fim: document.getElementById('data_fim').value,
+                status: document.getElementById('status').value
+            };
+
+            fetch('/api/evento/' + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + result.message);
+                    }
+                })
+                .catch(error => alert('Erro: ' + error));
+        });
+
+        // Fechar modais ao clicar fora
+        document.getElementById('modalOverlay').addEventListener('click', function (e) {
+            if (e.target === this) fecharModal();
+        });
+
+        document.getElementById('statusModalOverlay').addEventListener('click', function (e) {
+            if (e.target === this) fecharStatusModal();
+        });
+    </script>
+</body>
+
+</html>

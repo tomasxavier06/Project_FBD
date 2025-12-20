@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="pt">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Criar Evento - Estoril Track Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/sidebar.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/management.css">
+</head>
+
+<body>
+    <aside class="sidebar" aria-label="Barra lateral">
+        <nav>
+            <button class="sidebar-btn" onclick="window.location.href='/welcomeDC'">
+                <i class="fa-solid fa-house"></i>
+                <span>Página Inicial</span>
+            </button>
+        </nav>
+        <div class="sidebar-bottom">
+            <button class="sidebar-btn settings" onclick="window.location.href='/settings'">
+                <i class="fa-solid fa-gear"></i>
+                <span>Definições</span>
+            </button>
+            <button class="sidebar-btn logout" onclick="window.location.href='/logout'">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Terminar Sessão</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h1><i class="fa-solid fa-calendar-plus"></i> Criar Evento</h1>
+                <p class="team-name">Preencha os dados do novo evento</p>
+            </div>
+            <a href="/welcomeDC" class="btn btn-cancel">
+                <i class="fa-solid fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+
+        <div class="form-container">
+            <form id="criarEventoForm">
+                <div class="form-group">
+                    <label for="nome">Nome do Evento</label>
+                    <input type="text" id="nome" name="nome" placeholder="Ex: Grande Prémio de Portugal" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="tipo">Tipo de Evento</label>
+                    <select id="tipo" name="tipo" required>
+                        <option value="">Selecione o tipo</option>
+                        <option value="Corrida">Corrida</option>
+                        <option value="Treino Livre">Treino Livre</option>
+                        <option value="Qualificação">Qualificação</option>
+                        <option value="Teste Privado">Teste Privado</option>
+                        <option value="Track Day">Track Day</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="data_inicio">Data de Início</label>
+                        <input type="date" id="data_inicio" name="data_inicio" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="data_fim">Data de Fim</label>
+                        <input type="date" id="data_fim" name="data_fim" required />
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <p>O evento será criado com o estado <strong>"Por Iniciar"</strong>. Pode alterar o estado
+                        posteriormente na página de gestão de eventos.</p>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel"
+                        onclick="window.location.href='/welcomeDC'">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-plus"></i> Criar Evento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .form-container {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 600px;
+        }
+
+        .info-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: #f0f7ff;
+            border: 1px solid #d0e3ff;
+            border-radius: 6px;
+            padding: 14px 16px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+
+        .info-box i {
+            color: #3b82f6;
+            font-size: 16px;
+            margin-top: 2px;
+        }
+
+        .info-box p {
+            margin: 0;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #fafafa;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: #999;
+            background: #fff;
+        }
+    </style>
+
+    <script>
+        // Define minimum date as today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('data_inicio').min = today;
+        document.getElementById('data_fim').min = today;
+
+        // Update data_fim minimum when data_inicio changes
+        document.getElementById('data_inicio').addEventListener('change', function () {
+            document.getElementById('data_fim').min = this.value;
+            if (document.getElementById('data_fim').value < this.value) {
+                document.getElementById('data_fim').value = this.value;
+            }
+        });
+
+        document.getElementById('criarEventoForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const dataInicio = document.getElementById('data_inicio').value;
+            const dataFim = document.getElementById('data_fim').value;
+
+            if (dataFim < dataInicio) {
+                alert('A data de fim não pode ser anterior à data de início!');
+                return;
+            }
+
+            const data = {
+                nome: document.getElementById('nome').value,
+                tipo: document.getElementById('tipo').value,
+                data_inicio: dataInicio,
+                data_fim: dataFim
+            };
+
+            fetch('/criar_evento', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert(result.message);
+                        window.location.href = result.redirect;
+                    } else {
+                        alert('Erro: ' + result.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Erro ao criar evento: ' + error);
+                });
+        });
+    </script>
+</body>
+
+</html>

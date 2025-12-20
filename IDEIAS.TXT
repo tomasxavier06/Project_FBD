@@ -22,4 +22,3 @@ Tecnico de Pista:Aceder as sessoes a decorrer, adicionar voltas aos carros da se
 
 adicionar a capacidade de ver os pilotos e carros da equipa quando carregas nela
 
-

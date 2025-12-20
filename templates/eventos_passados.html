@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="pt">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Eventos Passados - Estoril Track Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/sidebar.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/management.css">
+</head>
+
+<body>
+    <aside class="sidebar" aria-label="Barra lateral">
+        <nav>
+            <button class="sidebar-btn" onclick="window.location.href='/welcomeDC'">
+                <i class="fa-solid fa-house"></i>
+                <span>Página Inicial</span>
+            </button>
+        </nav>
+        <div class="sidebar-bottom">
+            <button class="sidebar-btn settings" onclick="window.location.href='/settings'">
+                <i class="fa-solid fa-gear"></i>
+                <span>Definições</span>
+            </button>
+            <button class="sidebar-btn logout" onclick="window.location.href='/logout'">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Terminar Sessão</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h1><i class="fa-solid fa-clock-rotate-left"></i> Eventos Passados</h1>
+                <p class="team-name">Histórico de eventos concluídos</p>
+            </div>
+            <a href="/welcomeDC" class="btn btn-cancel">
+                <i class="fa-solid fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+
+        <div class="search-container">
+            <form action="/eventos_passados" method="GET">
+                <input type="text" name="nome_procurado" value="{{ pesquisa_feita if pesquisa_feita }}"
+                    placeholder="Pesquisar por nome ou tipo...">
+                <button type="submit">Pesquisar</button>
+                {% if pesquisa_feita %}
+                <a href="/eventos_passados">Limpar</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <i class="fa-solid fa-trophy"></i>
+                <div class="stat-info">
+                    <span class="stat-number">{{ eventos|length }}</span>
+                    <span class="stat-label">Eventos Concluídos</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            {% if eventos %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Tipo</th>
+                        <th>Data Início</th>
+                        <th>Data Fim</th>
+                        <th>Duração</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for evento in eventos %}
+                    <tr>
+                        <td style="font-weight: bold;">{{ evento[1] }}</td>
+                        <td>
+                            <span class="tipo-badge">{{ evento[2] }}</span>
+                        </td>
+                        <td>{{ evento[3] }}</td>
+                        <td>{{ evento[4] }}</td>
+                        <td class="duracao">
+                            <i class="fa-regular fa-calendar"></i>
+                            <span>-</span>
+                        </td>
+                        <td class="actions">
+                            <button class="btn btn-sm btn-view" data-id="{{ evento[0] }}" data-nome="{{ evento[1] }}"
+                                data-tipo="{{ evento[2] }}" data-inicio="{{ evento[3] }}" data-fim="{{ evento[4] }}"
+                                onclick="verDetalhes(this)">
+                                <i class="fa-solid fa-eye"></i> Ver Detalhes
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-folder-open"></i>
+                <p>Nenhum evento concluído encontrado</p>
+                <p style="font-size: 13px; color: #aaa; margin-top: 8px;">Os eventos aparecem aqui quando são marcados
+                    como "Concluído"</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal Ver Detalhes -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2><i class="fa-solid fa-flag-checkered"></i> Detalhes do Evento</h2>
+            <div class="evento-detalhes">
+                <div class="detalhe-item">
+                    <label>Nome do Evento</label>
+                    <span id="detalheNome">-</span>
+                </div>
+                <div class="detalhe-item">
+                    <label>Tipo</label>
+                    <span id="detalheTipo">-</span>
+                </div>
+                <div class="detalhe-row">
+                    <div class="detalhe-item">
+                        <label>Data de Início</label>
+                        <span id="detalheInicio">-</span>
+                    </div>
+                    <div class="detalhe-item">
+                        <label>Data de Fim</label>
+                        <span id="detalheFim">-</span>
+                    </div>
+                </div>
+                <div class="detalhe-item highlight">
+                    <label>Estado</label>
+                    <span class="status-badge status-concluído">
+                        <i class="fa-solid fa-check-circle"></i> Concluído
+                    </span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-cancel" onclick="fecharModal()" style="flex: 1;">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .search-container {
+            margin-bottom: 20px;
+            display: flex;
+        }
+
+        .search-container form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-container input[type="text"] {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 280px;
+        }
+
+        .search-container input[type="text"]:focus {
+            outline: none;
+            border-color: #999;
+        }
+
+        .search-container button {
+            padding: 10px 18px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .search-container button:hover {
+            background: #222;
+        }
+
+        .search-container a {
+            color: #888;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .search-container a:hover {
+            color: #333;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 16px 22px;
+        }
+
+        .stat-card i {
+            font-size: 28px;
+            color: #666;
+        }
+
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .tipo-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #e8f4fd;
+            color: #1976d2;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .duracao {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #666;
+            font-size: 13px;
+        }
+
+        .duracao i {
+            color: #999;
+        }
+
+        .btn-view {
+            background: #f5f5f5;
+            color: #555;
+            border: 1px solid #ddd;
+        }
+
+        .btn-view:hover {
+            background: #eee;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-concluído {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .evento-detalhes {
+            margin: 24px 0;
+        }
+
+        .detalhe-item {
+            margin-bottom: 18px;
+        }
+
+        .detalhe-item label {
+            display: block;
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .detalhe-item span {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .detalhe-row {
+            display: flex;
+            gap: 30px;
+        }
+
+        .detalhe-row .detalhe-item {
+            flex: 1;
+        }
+
+        .detalhe-item.highlight {
+            background: #f8f8f8;
+            padding: 14px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+    </style>
+
+    <script>
+        function verDetalhes(btn) {
+            const nome = btn.dataset.nome;
+            const tipo = btn.dataset.tipo;
+            const inicio = btn.dataset.inicio;
+            const fim = btn.dataset.fim;
+
+            document.getElementById('detalheNome').textContent = nome;
+            document.getElementById('detalheTipo').textContent = tipo;
+            document.getElementById('detalheInicio').textContent = inicio;
+            document.getElementById('detalheFim').textContent = fim;
+
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        // Fechar modal ao clicar fora
+        document.getElementById('modalOverlay').addEventListener('click', function (e) {
+            if (e.target === this) fecharModal();
+        });
+
+        // Calcular duração dos eventos
+        document.querySelectorAll('tbody tr').forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 5) {
+                const inicio = new Date(cells[2].textContent);
+                const fim = new Date(cells[3].textContent);
+                const diffTime = Math.abs(fim - inicio);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                const duracaoCell = cells[4].querySelector('span');
+                if (duracaoCell) {
+                    duracaoCell.textContent = diffDays === 1 ? '1 dia' : diffDays + ' dias';
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

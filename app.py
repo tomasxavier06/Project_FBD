@@ -200,7 +200,164 @@ def welcomeDC():
         conn.close()
         return redirect('/logout')
     conn.close()
-    return render_template('WelcomeDC.html')
+    return render_template('WelcomeDC.html', username=session.get('username', 'Diretor'))
+
+# Routes for Diretor de Corrida - Event Management
+@app.route('/criar_evento', methods=['GET', 'POST'])
+def criar_evento():
+    if 'loggedin' not in session:
+        return redirect('/login')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verify user is Diretor de Corrida
+    cursor.execute('SELECT * FROM Diretor_de_Corrida WHERE id_utilizador=?', (session['id'],))
+    if cursor.fetchone() is None:
+        conn.close()
+        return redirect('/logout')
+    
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            cursor.execute(
+                "INSERT INTO Evento (nome, tipo, data_inicio, data_fim, status, ID_utilizador_gestor_de_corrida) VALUES (?, ?, ?, ?, ?, ?)",
+                (data['nome'], data['tipo'], data['data_inicio'], data['data_fim'], 'Por Iniciar', session['id'])
+            )
+            conn.commit()
+            conn.close()
+            return jsonify({'success': True, 'message': 'Evento criado com sucesso!', 'redirect': '/gerir_eventos'})
+        except Exception as e:
+            conn.close()
+            return jsonify({'success': False, 'message': str(e)}), 400
+    
+    conn.close()
+    return render_template('criar_evento.html')
+
+@app.route('/gerir_eventos')
+def gerir_eventos():
+    if 'loggedin' not in session:
+        return redirect('/login')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verify user is Diretor de Corrida
+    cursor.execute('SELECT * FROM Diretor_de_Corrida WHERE id_utilizador=?', (session['id'],))
+    if cursor.fetchone() is None:
+        conn.close()
+        return redirect('/logout')
+    
+    pesquisa = request.args.get('nome_procurado')
+    
+    # Only get events that are NOT finished (Por Iniciar, A Decorrer) and belong to current user
+    query = "SELECT id_evento, nome, tipo, data_inicio, data_fim, status FROM Evento WHERE status != 'Concluído' AND ID_utilizador_gestor_de_corrida = ?"
+    parametros = [session['id']]
+    
+    if pesquisa:
+        query += " AND (nome LIKE ? OR tipo LIKE ?)"
+        parametros.extend([f"%{pesquisa}%"] * 2)
+    
+    query += " ORDER BY data_inicio ASC"
+    
+    cursor.execute(query, tuple(parametros))
+    eventos = cursor.fetchall()
+    conn.close()
+    
+    return render_template('gerir_eventos.html', eventos=eventos, pesquisa_feita=pesquisa)
+
+@app.route('/eventos_passados')
+def eventos_passados():
+    if 'loggedin' not in session:
+        return redirect('/login')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verify user is Diretor de Corrida
+    cursor.execute('SELECT * FROM Diretor_de_Corrida WHERE id_utilizador=?', (session['id'],))
+    if cursor.fetchone() is None:
+        conn.close()
+        return redirect('/logout')
+    
+    pesquisa = request.args.get('nome_procurado')
+    
+    # Only get finished events that belong to current user
+    query = "SELECT id_evento, nome, tipo, data_inicio, data_fim, status FROM Evento WHERE status = 'Concluído' AND ID_utilizador_gestor_de_corrida = ?"
+    parametros = [session['id']]
+    
+    if pesquisa:
+        query += " AND (nome LIKE ? OR tipo LIKE ?)"
+        parametros.extend([f"%{pesquisa}%"] * 2)
+    
+    query += " ORDER BY data_fim DESC"
+    
+    cursor.execute(query, tuple(parametros))
+    eventos = cursor.fetchall()
+    conn.close()
+    
+    return render_template('eventos_passados.html', eventos=eventos, pesquisa_feita=pesquisa)
+
+# API endpoints for event management
+@app.route('/api/evento/<int:id>', methods=['PUT'])
+def editar_evento(id):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Only update if the event belongs to the current user
+        cursor.execute(
+            "UPDATE Evento SET nome=?, tipo=?, data_inicio=?, data_fim=?, status=? WHERE id_evento=? AND ID_utilizador_gestor_de_corrida=?",
+            (data['nome'], data['tipo'], data['data_inicio'], data['data_fim'], data['status'], id, session['id'])
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Evento atualizado com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/api/evento/<int:id>', methods=['DELETE'])
+def cancelar_evento(id):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Instead of deleting, set status to 'Cancelado' - only if event belongs to current user
+        cursor.execute("UPDATE Evento SET status='Cancelado' WHERE id_evento=? AND ID_utilizador_gestor_de_corrida=?", (id, session['id']))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Evento cancelado com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/api/evento/<int:id>/status', methods=['PUT'])
+def alterar_status_evento(id):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Only update if the event belongs to the current user
+        cursor.execute("UPDATE Evento SET status=? WHERE id_evento=? AND ID_utilizador_gestor_de_corrida=?", (data['status'], id, session['id']))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Estado do evento atualizado!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
 
 @app.route('/welcomeDE')
 def welcomeDE():

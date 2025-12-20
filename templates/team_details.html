@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="pt">
+
 <head>
     <meta charset="utf-8" />
     <title>{{ equipa[0] }} - Estoril Track Manager</title>
@@ -14,6 +15,7 @@
             padding-bottom: 20px;
             border-bottom: 1px solid #eee;
         }
+
         .section-title {
             margin: 40px 0 20px 0;
             font-size: 20px;
@@ -22,19 +24,22 @@
             align-items: center;
             gap: 10px;
         }
+
         .pilot-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 20px;
         }
+
         .pilot-card {
             background: #fff;
             padding: 20px;
             border-radius: 8px;
             text-align: center;
             border: 1px solid #eee;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
+
         .pilot-card img {
             width: 80px;
             height: 80px;
@@ -46,14 +51,15 @@
 
         /* Fundo escurecido do Modal */
         .modal-overlay {
-            display: none; /* Escondido por padrão */
+            display: none;
+            /* Escondido por padrão */
             position: fixed;
             z-index: 1000;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.7);
+            background-color: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(5px);
             align-items: center;
             justify-content: center;
@@ -68,7 +74,7 @@
             max-width: 400px;
             text-align: center;
             position: relative;
-            box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
             border-top: 8px solid #cc0000;
         }
 
@@ -83,41 +89,44 @@
             cursor: pointer;
         }
 
-        .close-btn:hover { color: #cc0000; }
+        .close-btn:hover {
+            color: #cc0000;
+        }
     </style>
 </head>
+
 <body>
 
-  <aside class="sidebar" aria-label="Barra lateral">
-    <nav>
-      <button class="sidebar-btn" onclick="window.location.href='/'">
-        <i class="fa-solid fa-house"></i>
-        <span>Início</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/events'">
-        <i class="fa-solid fa-calendar"></i>
-        <span>Eventos</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/records'">
-        <i class="fa-solid fa-ranking-star"></i>
-        <span>Recordes</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/pilots'">
-        <i class="fa-solid fa-users"></i>
-        <span>Pilotos</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/teams'">
-        <i class="fa-solid fa-warehouse"></i>
-        <span>Equipas</span>
-      </button>
-    </nav>
-    <div class="sidebar-bottom">
-      <button class="sidebar-btn" onclick="window.location.href='/login'">
-        <i class="fa-solid fa-user"></i>
-        <span>Login</span>
-      </button>
-    </div>
-  </aside>
+    <aside class="sidebar" aria-label="Barra lateral">
+        <nav>
+            <button class="sidebar-btn" onclick="window.location.href='/'">
+                <i class="fa-solid fa-house"></i>
+                <span>Início</span>
+            </button>
+            <button class="sidebar-btn" onclick="window.location.href='/events'">
+                <i class="fa-solid fa-calendar"></i>
+                <span>Eventos</span>
+            </button>
+            <button class="sidebar-btn" onclick="window.location.href='/records'">
+                <i class="fa-solid fa-ranking-star"></i>
+                <span>Recordes</span>
+            </button>
+            <button class="sidebar-btn" onclick="window.location.href='/pilots'">
+                <i class="fa-solid fa-users"></i>
+                <span>Pilotos</span>
+            </button>
+            <button class="sidebar-btn" onclick="window.location.href='/teams'">
+                <i class="fa-solid fa-warehouse"></i>
+                <span>Equipas</span>
+            </button>
+        </nav>
+        <div class="sidebar-bottom">
+            <button class="sidebar-btn" onclick="window.location.href='/login'">
+                <i class="fa-solid fa-user"></i>
+                <span>Login</span>
+            </button>
+        </div>
+    </aside>
 
     <div class="content">
         <div class="team-info-header">
@@ -128,31 +137,33 @@
             <p style="color:#666;"><i class="fa-solid fa-location-dot"></i> {{ equipa[1] }}</p>
         </div>
 
-    <h2 class="section-title"><i class="fa-solid fa-user-ninja"></i> Pilotos</h2>
-    <div class="pilot-grid">
-        {% for piloto in pilotos %}
-        <div class="pilot-card" style="cursor: pointer;" 
-            onclick="openPilotModal('{{ piloto[1] }}', '{{ piloto[2] }}', '{{ piloto[3] }}', '{{ piloto[0] }}', '/static/assets/pilots/{{ piloto[4] if piloto[4] else 'default_pilot.png' }}')">
-            <img src="/static/assets/pilots/{{ piloto[4] if piloto[4] else 'default_pilot.png' }}" alt="Piloto">
-            <div style="font-weight: bold; margin-bottom: 5px;">{{ piloto[1] }}</div>
-            <div style="font-size: 12px; color: #888;">{{ piloto[3] }}</div>
+        <h2 class="section-title"><i class="fa-solid fa-user-ninja"></i> Pilotos</h2>
+        <div class="pilot-grid">
+            {% for piloto in pilotos %}
+            <div class="pilot-card" style="cursor: pointer;"
+                onclick="openPilotModal('{{ piloto[1] }}', '{{ piloto[2] }}', '{{ piloto[3] }}', '{{ piloto[0] }}', '/static/assets/pilots/{{ piloto[4] if piloto[4] else 'default_pilot.png' }}')">
+                <img src="/static/assets/pilots/{{ piloto[4] if piloto[4] else 'default_pilot.png' }}" alt="Piloto">
+                <div style="font-weight: bold; margin-bottom: 5px;">{{ piloto[1] }}</div>
+                <div style="font-size: 12px; color: #888;">{{ piloto[3] }}</div>
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
 
-    <div id="pilotModal" class="modal-overlay" onclick="closePilotModal(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <span class="close-btn" onclick="document.getElementById('pilotModal').style.display='none'">&times;</span>
-            <div id="modal-body">
-                <img id="modal-img" src="" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #cc0000; margin-bottom: 20px;">
-                <h2 id="modal-nome" style="margin-bottom: 10px;"></h2>
-                <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
-                <p><strong>Nacionalidade:</strong> <span id="modal-nacionalidade"></span></p>
-                <p><strong>Data de Nascimento:</strong> <span id="modal-data"></span></p>
-                <p><strong>Nº Licença:</strong> <span id="modal-licenca"></span></p>
+        <div id="pilotModal" class="modal-overlay" onclick="closePilotModal(event)">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <span class="close-btn"
+                    onclick="document.getElementById('pilotModal').style.display='none'">&times;</span>
+                <div id="modal-body">
+                    <img id="modal-img" src=""
+                        style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #cc0000; margin-bottom: 20px;">
+                    <h2 id="modal-nome" style="margin-bottom: 10px;"></h2>
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+                    <p><strong>Nacionalidade:</strong> <span id="modal-nacionalidade"></span></p>
+                    <p><strong>Data de Nascimento:</strong> <span id="modal-data"></span></p>
+                    <p><strong>Nº Licença:</strong> <span id="modal-licenca"></span></p>
+a                </div>
             </div>
         </div>
-    </div>
 
         <h2 class="section-title"><i class="fa-solid fa-car"></i> Frota de Carros</h2>
         <div id="table-view">
@@ -171,7 +182,8 @@
                         <td><code>{{ carro[0] }}</code></td>
                         <td style="font-weight: bold;">{{ carro[1] }}</td>
                         <td>{{ carro[2] }}</td>
-                        <td><span style="background:#eee; padding:3px 8px; border-radius:4px; font-size:12px;">{{ carro[3] }}</span></td>
+                        <td><span style="background:#eee; padding:3px 8px; border-radius:4px; font-size:12px;">{{
+                                carro[3] }}</span></td>
                     </tr>
                     {% else %}
                     <tr>
@@ -191,7 +203,7 @@
             document.getElementById('modal-nacionalidade').innerText = nacionalidade;
             document.getElementById('modal-licenca').innerText = licenca;
             document.getElementById('modal-img').src = foto;
-            
+
             document.getElementById('pilotModal').style.display = 'flex';
         }
 
@@ -201,4 +213,5 @@
         }
     </script>
 </body>
+
 </html>
