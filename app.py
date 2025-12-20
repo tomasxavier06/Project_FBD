@@ -109,11 +109,79 @@ def teams():
     except Exception as e:
         print(f"erro real: {e}")
         return "<h3>Não foi possível carregar as equipas. Tente novamente</h3>"
+    
+@app.route('/team/<int:id>')
+def team_details(id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT nome, pais FROM Equipa WHERE id_equipa = ?", (id,))
+        equipa = cursor.fetchone()
+
+        if not equipa:
+            conn.close()
+            return "<h3>Equipa não encontrada.</h3>", 404
+
+        
+        cursor.execute("""
+            SELECT numero_licenca, nome, data_nascimento, nacionalidade, foto_piloto 
+            FROM Piloto WHERE id_equipa = ?
+        """, (id,))
+        pilotos = cursor.fetchall()
+
+
+        cursor.execute("""
+            SELECT VIN, marca, modelo, categoria 
+            FROM Carro WHERE id_equipa = ?
+        """, (id,))
+        carros = cursor.fetchall()
+
+        conn.close()
+        return render_template('team_details.html', equipa=equipa, pilotos=pilotos, carros=carros)
+    except Exception as e:
+        print(f"Erro ao carregar detalhes da equipa: {e}")
+        return "<h3>Erro ao carregar detalhes.</h3>"
+
 # Define a rota para a página de eventos
 @app.route('/events')
 def events():
-    # Retorna o template events.html
-    return render_template('events.html')
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        pesquisa = request.args.get('nome_procurado')
+        coluna = request.args.get('coluna', 'data_inicio')
+        ordem = request.args.get('ordem', 'asc')
+
+        colunas_validas = ['id_evento', 'nome', 'tipo', 'data_inicio', 'data_fim', 'status']
+        
+        if coluna not in colunas_validas:
+            coluna = 'data_inicio'
+        if ordem.lower() not in ['asc', 'desc']:
+            ordem = 'asc'
+
+        query = "SELECT id_evento, nome, tipo, data_inicio, data_fim, status FROM Evento"
+        parametros = []
+
+        if pesquisa:
+            query += " WHERE (nome LIKE ? OR tipo LIKE ? OR status LIKE ?)"
+            parametros.extend([f"%{pesquisa}%"] * 3)
+                    
+        query += f" ORDER BY {coluna} {ordem}"
+        
+        cursor.execute(query, tuple(parametros))
+        eventos = cursor.fetchall()
+        conn.close()
+        
+        return render_template('events.html', 
+                               eventos=eventos, 
+                               ordem_atual=ordem, 
+                               coluna_ativa=coluna, 
+                               pesquisa_feita=pesquisa)
+    except Exception as e:
+        print(f"Erro real em eventos: {e}")
+        return f"<h3>Erro ao carregar eventos: {e}</h3>"
 
 # Define a rota para a página de recordes
 @app.route('/records')

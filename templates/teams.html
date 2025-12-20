@@ -102,7 +102,11 @@
         {% for equipa in equipas %}
         <tr>
           <td>{{ equipa[0] }}</td>
-          <td>{{ equipa[1] }}</td>
+          <td>
+              <a href="/team/{{ equipa[0] }}" style="text-decoration: none; color: #cc0000; font-weight: bold;">
+                {{ equipa[1] }}
+              </a>
+          </td>
           <td>{{ equipa[2] }}</td>
         </tr>
         {% endfor %}

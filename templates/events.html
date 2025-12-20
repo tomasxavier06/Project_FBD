@@ -1,53 +1,105 @@
 <!doctype html>
 <html lang="pt">
-
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Eventos - Estoril Track Manager</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/static/css/sidebar.css">
   <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/sidebar.css">
+  <link rel="stylesheet" href="/static/css/tables.css">
 </head>
-
 <body>
-
-  <aside class="sidebar" aria-label="Barra lateral">
+  <aside class="sidebar">
     <nav>
-      <button class="sidebar-btn" onclick="window.location.href='/'">
-        <i class="fa-solid fa-house"></i>
-        <span>Início</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/events'">
-        <i class="fa-solid fa-calendar"></i>
-        <span>Eventos</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/records'">
-        <i class="fa-solid fa-ranking-star"></i>
-        <span>Recordes</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/pilots'">
-        <i class="fa-solid fa-users"></i>
-        <span>Pilotos</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/teams'">
-        <i class="fa-solid fa-warehouse"></i>
-        <span>Equipas</span>
-      </button>
+      <button class="sidebar-btn" onclick="window.location.href='/'"><i class="fa-solid fa-house"></i><span>Início</span></button>
+      <button class="sidebar-btn active" onclick="window.location.href='/events'"><i class="fa-solid fa-calendar"></i><span>Eventos</span></button>
+      <button class="sidebar-btn" onclick="window.location.href='/pilots'"><i class="fa-solid fa-users"></i><span>Pilotos</span></button>
+      <button class="sidebar-btn" onclick="window.location.href='/teams'"><i class="fa-solid fa-warehouse"></i><span>Equipas</span></button>
     </nav>
-    <div class="sidebar-bottom">
-      <button class="sidebar-btn" onclick="window.location.href='/login'">
-        <i class="fa-solid fa-user"></i>
-        <span>Login</span>
-      </button>
-    </div>
   </aside>
 
   <div class="content">
-    <h1>Eventos Passados</h1>
-    <p>Conteúdo da página de eventos em desenvolvimento...</p>
+    <h1 style="margin-bottom: 30px;">Calendário de Eventos</h1>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <div class="search-container" style="margin-bottom: 0;">
+            <form action="/events" method="GET">
+                <input type="text" name="nome_procurado" value="{{ pesquisa_feita if pesquisa_feita }}" placeholder="Nome, tipo ou status...">
+                <button type="submit">Pesquisar</button>
+            </form>
+        </div>
+
+        <div style="display: flex; border: 1px solid #ddd; border-radius: 5px; overflow: hidden;">
+            <button id="btn-table" onclick="toggleView('table')" style="padding: 10px 20px; cursor: pointer; border: none; background: #cc0000; color: white; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-list"></i> Tabela
+            </button>
+            <button id="btn-grid" onclick="toggleView('grid')" style="padding: 10px 20px; cursor: pointer; border: none; background: #eee; color: #333; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-grip"></i> Grelha
+            </button>
+        </div>
+    </div>
+
+    <div id="table-view">
+        <table>
+            <thead>
+                <tr>
+                    <th><a href="/events?coluna=nome&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}" style="color: {{ '#cc0000' if coluna_ativa == 'nome' else 'inherit' }};">Nome</a></th>
+                    <th>Tipo</th>
+                    <th><a href="/events?coluna=data_inicio&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}" style="color: {{ '#cc0000' if coluna_ativa == 'data_inicio' else 'inherit' }};">Início</a></th>
+                    <th>Fim</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for evento in eventos %}
+                <tr>
+                    <td style="font-weight: bold;">{{ evento[1] }}</td>
+                    <td>{{ evento[2] }}</td>
+                    <td>{{ evento[3] }}</td>
+                    <td>{{ evento[4] }}</td>
+                    <td>
+                        <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; background: {% if evento[5] == 'Concluído' %}#e6fffa; color: #2c7a7b;{% elif evento[5] == 'Decorrer' %}#fffaf0; color: #b7791f;{% else %}#edf2f7; color: #4a5568;{% endif %}">
+                            {{ evento[5] }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div id="grid-view" style="display: none;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 20px;">
+            {% for evento in eventos %}
+            <div style="background: #fff; padding: 20px; border-radius: 10px; border-top: 4px solid #cc0000; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <h3 style="margin: 0; color: #333;">{{ evento[1] }}</h3>
+                </div>
+                <p style="margin: 10px 0; font-size: 14px; color: #cc0000; font-weight: bold;">{{ evento[2] }}</p>
+                <div style="font-size: 13px; color: #666; margin: 15px 0;">
+                    <i class="fa-solid fa-calendar-day"></i> {{ evento[3] }} até {{ evento[4] }}
+                </div>
+                <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #999;">Status: {{ evento[5] }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
   </div>
 
+  <script>
+    function toggleView(view) {
+        document.getElementById('table-view').style.display = view === 'table' ? 'block' : 'none';
+        document.getElementById('grid-view').style.display = view === 'grid' ? 'block' : 'none';
+        const btnTable = document.getElementById('btn-table');
+        const btnGrid = document.getElementById('btn-grid');
+        if (view === 'table') {
+            btnTable.style.background = '#cc0000'; btnTable.style.color = 'white';
+            btnGrid.style.background = '#eee'; btnGrid.style.color = '#333';
+        } else {
+            btnGrid.style.background = '#cc0000'; btnGrid.style.color = 'white';
+            btnTable.style.background = '#eee'; btnTable.style.color = '#333';
+        }
+    }
+  </script>
 </body>
-
 </html>
