@@ -163,6 +163,37 @@ def events():
     except Exception as e:
         return f"Erro: {e}"
 
+@app.route('/api/lap_details/<int:id_volta>')
+def lap_details(id_volta):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # query que junta a Volta com a Sessão para obter os dados técnicos
+        query = """
+            SELECT 
+                S.temperatura_asfalto, S.temperatura_ar, S.humidade, S.precipitação,
+                V.pressao_pneus, V.numero_volta, S.tipo as tipo_sessao,
+                dbo.fn_FormatarTempoMS(V.tempo) as tempo
+            FROM Volta V
+            INNER JOIN Sessao S ON V.id_sessao = S.id_sessao
+            WHERE V.id_volta = ?
+        """
+        cursor.execute(query, (id_volta,))
+        row = cursor.fetchone()
+        conn.close()
+
+        if row:
+            return jsonify({
+                'temp_asfalto': row[0], 'temp_ar': row[1],
+                'humidade': row[2], 'precipitacao': row[3],
+                'pressao': row[4], 'volta_n': row[5],
+                'sessao': row[6], 'tempo': row[7]
+            })
+        return jsonify({'error': 'Não encontrado'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Define a rota para a página de recordes
 @app.route('/records')
 def records():
@@ -203,7 +234,8 @@ def records():
                 C.marca + ' ' + C.modelo as carro,
                 Ev.nome as evento,
                 V.tempo,
-                S.data
+                S.data,
+                V.id_volta
             FROM Volta V
             INNER JOIN Piloto P ON V.numero_licenca = P.numero_licenca
             INNER JOIN Equipa E ON P.id_equipa = E.id_equipa

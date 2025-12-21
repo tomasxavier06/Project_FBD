@@ -113,7 +113,7 @@
             <tbody>
                 {% for recorde in recordes %}
                 <tr>
-                    <td><span class="lap-time">{{ recorde[0] }}</span></td>
+                    <td><span class="lap-time" style="cursor: pointer;" onclick="showDetails({{ recorde[7] }})">{{ recorde[0] }}</span></td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <div style="width: 30px; height: 30px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center;">
@@ -142,5 +142,58 @@
         </table>
     </div>
   </div>
+<div id="detailsModal" class="modal-overlay">
+    <div class="modal">
+        <h2 style="font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span><i class="fa-solid fa-circle-info"></i> Detalhes Técnicos</span>
+            <span id="m-tempo" style="color: #cc0000; font-weight: bold;"></span>
+        </h2>
+        
+        <div class="dashboard-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="dashboard-card" style="padding: 10px; background: #f9f9f9; border-radius: 6px; text-align: center; border: 1px solid #eee;">
+                <small style="color: #888; display: block; font-size: 0.75rem; text-transform: uppercase;">Asfalto / Ar</small>
+                <strong style="font-size: 14px; color: #333;"><span id="m-t-asfalto"></span>°C / <span id="m-t-ar"></span>°C</strong>
+            </div>
+            <div class="dashboard-card" style="padding: 10px; background: #f9f9f9; border-radius: 6px; text-align: center; border: 1px solid #eee;">
+                <small style="color: #888; display: block; font-size: 0.75rem; text-transform: uppercase;">Humidade</small>
+                <strong style="font-size: 14px; color: #333;"><span id="m-humidade"></span>%</strong>
+            </div>
+            <div class="dashboard-card" style="padding: 10px; background: #f9f9f9; border-radius: 6px; text-align: center; border: 1px solid #eee;">
+                <small style="color: #888; display: block; font-size: 0.75rem; text-transform: uppercase;">Pressão Pneus</small>
+                <strong style="font-size: 14px; color: #333;"><span id="m-pressao"></span> PSI</strong>
+            </div>
+            <div class="dashboard-card" style="padding: 10px; background: #f9f9f9; border-radius: 6px; text-align: center; border: 1px solid #eee;">
+                <small style="color: #888; display: block; font-size: 0.75rem; text-transform: uppercase;">Precipitação</small>
+                <strong style="font-size: 14px; color: #333;"><span id="m-precip"></span>%</strong>
+            </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: flex-end;">
+            <button onclick="closeModal()" class="btn-minimal">OK</button>
+        </div>
+    </div>
+</div>
+
+<script>
+  function showDetails(id) {
+    fetch(`/api/lap_details/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if(data.error) return;
+            document.getElementById('m-tempo').innerText = data.tempo;
+            document.getElementById('m-t-asfalto').innerText = data.temp_asfalto;
+            document.getElementById('m-t-ar').innerText = data.temp_ar;
+            document.getElementById('m-humidade').innerText = data.humidade;
+            document.getElementById('m-precip').innerText = data.precipitacao;
+            document.getElementById('m-pressao').innerText = data.pressao;
+            
+            document.getElementById('detailsModal').classList.add('active');
+        });
+}
+
+  function closeModal() {
+      document.getElementById('detailsModal').classList.remove('active');
+  }
+</script>
 </body>
 </html>
