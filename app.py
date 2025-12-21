@@ -738,9 +738,29 @@ def cancelar_inscricao(id_evento):
             conn.close()
             return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
         
+        id_equipa = equipa[0]
+        
+        # Check if there are pilots/cars from this team registered in sessions of this event
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM Participa_Sessao ps
+            INNER JOIN Sessao s ON ps.id_sessao = s.id_sessao
+            INNER JOIN Piloto p ON ps.numero_licenca = p.numero_licenca
+            WHERE s.id_evento = ? AND p.id_equipa = ?
+        """, (id_evento, id_equipa))
+        
+        count = cursor.fetchone()[0]
+        
+        if count > 0:
+            conn.close()
+            return jsonify({
+                'success': False, 
+                'message': 'Não é possível cancelar a inscrição. Existem pilotos inscritos em sessões deste evento. Remova primeiro as inscrições nas sessões.'
+            }), 400
+        
         cursor.execute(
             "DELETE FROM Participa_Evento WHERE id_equipa=? AND id_evento=?",
-            (equipa[0], id_evento)
+            (id_equipa, id_evento)
         )
         conn.commit()
         conn.close()
@@ -1315,6 +1335,19 @@ def registar_volta():
         if cursor.fetchone() is not None:
             conn.close()
             return jsonify({'success': False, 'message': 'Já existe uma volta com este número para este carro nesta sessão!'}), 400
+        
+        # Check if weather conditions are registered for this session
+        cursor.execute("""
+            SELECT temperatura_asfalto, temperatura_ar, humidade 
+            FROM Sessao WHERE id_sessao=?
+        """, (data['id_sessao'],))
+        sessao = cursor.fetchone()
+        if sessao is None or sessao[0] is None or sessao[1] is None or sessao[2] is None:
+            conn.close()
+            return jsonify({
+                'success': False, 
+                'message': 'Não é possível registar voltas. As condições meteorológicas da sessão ainda não foram registadas.'
+            }), 400
         
         # Get tire pressure from Participa_Sessao
         cursor.execute("""
