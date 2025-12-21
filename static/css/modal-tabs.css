@@ -1,0 +1,68 @@
+/* Modal Tabs Styles - Used for tabbed interfaces */
+
+.modal-tabs {
+    display: flex;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    border-bottom: 2px solid transparent;
+}
+
+.tab-btn.active {
+    border-bottom-color: #667eea;
+    color: #667eea;
+    font-weight: 600;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.available-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.available-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+.available-item:hover {
+    background: #f9f9f9;
+}
+
+.available-item .info {
+    flex: 1;
+}
+
+.available-item .info strong {
+    display: block;
+}
+
+.available-item .info small {
+    color: #666;
+}
+
+.empty-message {
+    color: #999;
+    text-align: center;
+    padding: 20px;
+}

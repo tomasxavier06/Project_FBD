@@ -206,9 +206,6 @@ def records():
         cursor.execute("SELECT DISTINCT nome FROM Piloto ORDER BY nome")
         lista_pilotos = [row[0] for row in cursor.fetchall()]
 
-        cursor.execute("SELECT DISTINCT nome FROM Equipa ORDER BY nome")
-        lista_equipas = [row[0] for row in cursor.fetchall()]
-
         cursor.execute("""
             SELECT DISTINCT (marca + ' ' + modelo) 
             FROM Carro 
@@ -221,7 +218,6 @@ def records():
 
         # 2. Capturar os filtros selecionados via GET
         f_piloto = request.args.get('piloto', '')
-        f_equipa = request.args.get('equipa', '')
         f_carro = request.args.get('carro', '')
         f_evento = request.args.get('evento', '')
 
@@ -230,7 +226,6 @@ def records():
             SELECT 
                 dbo.fn_FormatarTempoMS(V.tempo) as tempo_formatado,
                 P.nome as piloto,
-                E.nome as equipa,
                 C.marca + ' ' + C.modelo as carro,
                 Ev.nome as evento,
                 V.tempo,
@@ -238,7 +233,6 @@ def records():
                 V.id_volta
             FROM Volta V
             INNER JOIN Piloto P ON V.numero_licenca = P.numero_licenca
-            INNER JOIN Equipa E ON P.id_equipa = E.id_equipa
             INNER JOIN Carro C ON V.carro_VIN = C.VIN
             INNER JOIN Sessao S ON V.id_sessao = S.id_sessao
             INNER JOIN Evento Ev ON S.id_evento = Ev.id_evento
@@ -250,9 +244,6 @@ def records():
         if f_piloto:
             query += " AND P.nome = ?"
             params.append(f_piloto)
-        if f_equipa:
-            query += " AND E.nome = ?"
-            params.append(f_equipa)
         if f_carro:
             query += " AND (C.marca + ' ' + C.modelo) = ?"
             params.append(f_carro)
@@ -271,11 +262,9 @@ def records():
         return render_template('records.html', 
                                recordes=recordes,
                                lista_pilotos=lista_pilotos,
-                               lista_equipas=lista_equipas,
                                lista_carros=lista_carros,
                                lista_eventos=lista_eventos,
                                f_piloto=f_piloto,
-                               f_equipa=f_equipa,
                                f_carro=f_carro,
                                f_evento=f_evento)
     except Exception as e:
@@ -1525,13 +1514,27 @@ def registar_volta():
             conn.close()
             return jsonify({'success': False, 'message': 'Já existe uma volta com este número para este carro nesta sessão!'}), 400
         
-        # Check if weather conditions are registered for this session
+        # Check if weather conditions are registered AND session is in progress
         cursor.execute("""
-            SELECT temperatura_asfalto, temperatura_ar, humidade 
+            SELECT temperatura_asfalto, temperatura_ar, humidade, status 
             FROM Sessao WHERE id_sessao=?
         """, (data['id_sessao'],))
         sessao = cursor.fetchone()
-        if sessao is None or sessao[0] is None or sessao[1] is None or sessao[2] is None:
+        
+        if sessao is None:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Sessão não encontrada!'}), 400
+        
+        # Check if session is in progress
+        if sessao[3] != 'A Decorrer':
+            conn.close()
+            return jsonify({
+                'success': False, 
+                'message': 'Só é possível registar voltas em sessões com estado "A Decorrer"!'
+            }), 400
+        
+        # Check weather conditions
+        if sessao[0] is None or sessao[1] is None or sessao[2] is None:
             conn.close()
             return jsonify({
                 'success': False, 

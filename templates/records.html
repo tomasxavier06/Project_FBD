@@ -1,199 +1,206 @@
 <!doctype html>
 <html lang="pt">
+
 <head>
-  <meta charset="utf-8" />
-  <title>Recordes - Estoril Track Manager</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/static/css/base.css">
-  <link rel="stylesheet" href="/static/css/sidebar.css">
-  <link rel="stylesheet" href="/static/css/tables.css">
-  <link rel="stylesheet" href="/static/css/records.css">
+    <meta charset="utf-8" />
+    <title>Recordes - Estoril Track Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/sidebar.css">
+    <link rel="stylesheet" href="/static/css/tables.css">
+    <link rel="stylesheet" href="/static/css/records.css">
 </head>
+
 <body>
 
-  <aside class="sidebar" aria-label="Barra lateral">
-    <nav>
-      <button class="sidebar-btn" onclick="window.location.href='/'">
-        <i class="fa-solid fa-house"></i>
-        <span>Início</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/events'">
-        <i class="fa-solid fa-calendar"></i>
-        <span>Eventos</span>
-      </button>
-      <button class="sidebar-btn active" onclick="window.location.href='/records'">
-        <i class="fa-solid fa-ranking-star"></i>
-        <span>Recordes</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/pilots'">
-        <i class="fa-solid fa-users"></i>
-        <span>Pilotos</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/teams'">
-        <i class="fa-solid fa-warehouse"></i>
-        <span>Equipas</span>
-      </button>
-    </nav>
-    <div class="sidebar-bottom">
-      <button class="sidebar-btn" onclick="window.location.href='/login'">
-        <i class="fa-solid fa-user"></i>
-        <span>Login</span>
-      </button>
-    </div>
-  </aside>
+    <aside class="sidebar" aria-label="Barra lateral">
+        <nav>
+            <button class="sidebar-btn" onclick="window.location.href='/'">
+                <i class="fa-solid fa-house"></i>
+                <span>Início</span>
+            </button>
+            <button class="sidebar-btn" onclick="window.location.href='/events'">
+                <i class="fa-solid fa-calendar"></i>
+                <span>Eventos</span>
+            </button>
+            <button class="sidebar-btn active" onclick="window.location.href='/records'">
+                <i class="fa-solid fa-ranking-star"></i>
+                <span>Recordes</span>
+            </button>
+            <button class="sidebar-btn" onclick="window.location.href='/pilots'">
+                <i class="fa-solid fa-users"></i>
+                <span>Pilotos</span>
+            </button>
+            <button class="sidebar-btn" onclick="window.location.href='/teams'">
+                <i class="fa-solid fa-warehouse"></i>
+                <span>Equipas</span>
+            </button>
+        </nav>
+        <div class="sidebar-bottom">
+            <button class="sidebar-btn" onclick="window.location.href='/login'">
+                <i class="fa-solid fa-user"></i>
+                <span>Login</span>
+            </button>
+        </div>
+    </aside>
 
-  <div class="content">
-    <h1><i class="fa-solid fa-stopwatch"></i> Recordes de Pista</h1>
-    
-    <div class="filters-wrapper">
-        <form action="/records" method="GET">
-            <div class="filters-grid">
-                <div class="filter-group">
-                    <label>Piloto</label>
-                    <select name="piloto">
-                        <option value="">Todos os Pilotos</option>
-                        {% for p in lista_pilotos %}
-                        <option value="{{ p }}" {{ 'selected' if p == f_piloto }}>{{ p }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+    <div class="content">
+        <h1><i class="fa-solid fa-stopwatch"></i> Recordes de Pista</h1>
 
-                <div class="filter-group">
-                    <label>Equipa</label>
-                    <select name="equipa">
-                        <option value="">Todas as Equipas</option>
-                        {% for e in lista_equipas %}
-                        <option value="{{ e }}" {{ 'selected' if e == f_equipa }}>{{ e }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+        <div class="filters-wrapper">
+            <form action="/records" method="GET">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label>Piloto</label>
+                        <select name="piloto">
+                            <option value="">Todos os Pilotos</option>
+                            {% for p in lista_pilotos %}
+                            <option value="{{ p }}" {{ 'selected' if p==f_piloto }}>{{ p }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-                <div class="filter-group">
-                    <label>Carro</label>
-                    <select name="carro">
-                        <option value="">Todos os Carros</option>
-                        {% for c in lista_carros %}
-                        <option value="{{ c }}" {{ 'selected' if c == f_carro }}>{{ c }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+                    <div class="filter-group">
+                        <label>Carro</label>
+                        <select name="carro">
+                            <option value="">Todos os Carros</option>
+                            {% for c in lista_carros %}
+                            <option value="{{ c }}" {{ 'selected' if c==f_carro }}>{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-                <div class="filter-group">
-                    <label>Evento</label>
-                    <select name="evento">
-                        <option value="">Todos os Eventos</option>
-                        {% for ev in lista_eventos %}
-                        <option value="{{ ev }}" {{ 'selected' if ev == f_evento }}>{{ ev }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+                    <div class="filter-group">
+                        <label>Evento</label>
+                        <select name="evento">
+                            <option value="">Todos os Eventos</option>
+                            {% for ev in lista_eventos %}
+                            <option value="{{ ev }}" {{ 'selected' if ev==f_evento }}>{{ ev }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-                <div class="filter-group">
-                    <button type="submit" class="btn-filter"><i class="fa-solid fa-filter"></i> Filtrar</button>
+                    <div class="filter-group">
+                        <button type="submit" class="btn-filter"><i class="fa-solid fa-filter"></i> Filtrar</button>
+                    </div>
                 </div>
-            </div>
-            {% if f_piloto or f_equipa or f_carro or f_evento %}
+                {% if f_piloto or f_carro or f_evento %}
                 <a href="/records" class="btn-clear">Limpar todos os filtros</a>
-            {% endif %}
-        </form>
-    </div>
+                {% endif %}
+            </form>
+        </div>
 
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th><a href="/records?coluna=tempo&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}&piloto={{f_piloto}}&equipa={{f_equipa}}&carro={{f_carro}}&evento={{f_evento}}">Tempo Volta {{ '▲' if coluna_ativa == 'tempo' and ordem_atual == 'asc' else ('▼' if coluna_ativa == 'tempo' else '↕') }}</a></th>
-                    <th>Piloto</th>
-                    <th>Equipa</th>
-                    <th>Carro</th>
-                    <th>Evento</th>
-                    <th>Data</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for recorde in recordes %}
-                <tr>
-                    <td><span class="lap-time" style="cursor: pointer;" onclick="showDetails({{ recorde[7] }})">{{ recorde[0] }}</span></td>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 30px; height: 30px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center;">
-                                <i class="fa-solid fa-user" style="font-size: 14px; color: #aaa;"></i>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th><a
+                                href="/records?coluna=tempo&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}&piloto={{f_piloto}}&carro={{f_carro}}&evento={{f_evento}}">Tempo
+                                Volta {{ '▲' if coluna_ativa == 'tempo' and ordem_atual == 'asc' else ('▼' if
+                                coluna_ativa == 'tempo' else '↕') }}</a></th>
+                        <th>Piloto</th>
+                        <th>Carro</th>
+                        <th>Evento</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for recorde in recordes %}
+                    <tr>
+                        <td><span class="lap-time" style="cursor: pointer;" onclick="showDetails({{ recorde[6] }})">{{
+                                recorde[0] }}</span></td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div
+                                    style="width: 30px; height: 30px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fa-solid fa-user" style="font-size: 14px; color: #aaa;"></i>
+                                </div>
+                                {{ recorde[1] }}
                             </div>
-                            {{ recorde[1] }}
-                        </div>
-                    </td>
-                    <td>{{ recorde[2] }}</td>
-                    <td>{{ recorde[3] }}</td>
-                    <td>
-                        <div style="font-weight: bold;">{{ recorde[4] }}</div>
-                        <div style="font-size: 11px; color: #888;">{{ recorde[5] }}</div>
-                    </td>
-                    <td>{{ recorde[6] }}</td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="6" style="text-align: center; padding: 30px; color: #888;">
-                        <i class="fa-solid fa-circle-exclamation" style="font-size: 30px; margin-bottom: 10px;"></i><br>
-                        Nenhum recorde encontrado com estes filtros.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-  </div>
-<div id="detailsModal" class="modal-overlay">
-    <div class="modal">
-        <h2 style="font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-            <span><i class="fa-solid fa-circle-info"></i> Detalhes Técnicos</span>
-            <span id="m-tempo" style="color: #cc0000; font-weight: bold;"></span>
-        </h2>
-        
-        <div class="dashboard-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="dashboard-card" style="padding: 10px; background: #f9f9f9; border-radius: 6px; text-align: center; border: 1px solid #eee;">
-                <small style="color: #888; display: block; font-size: 0.75rem; text-transform: uppercase;">Asfalto / Ar</small>
-                <strong style="font-size: 14px; color: #333;"><span id="m-t-asfalto"></span>°C / <span id="m-t-ar"></span>°C</strong>
-            </div>
-            <div class="dashboard-card" style="padding: 10px; background: #f9f9f9; border-radius: 6px; text-align: center; border: 1px solid #eee;">
-                <small style="color: #888; display: block; font-size: 0.75rem; text-transform: uppercase;">Humidade</small>
-                <strong style="font-size: 14px; color: #333;"><span id="m-humidade"></span>%</strong>
-            </div>
-            <div class="dashboard-card" style="padding: 10px; background: #f9f9f9; border-radius: 6px; text-align: center; border: 1px solid #eee;">
-                <small style="color: #888; display: block; font-size: 0.75rem; text-transform: uppercase;">Pressão Pneus</small>
-                <strong style="font-size: 14px; color: #333;"><span id="m-pressao"></span> PSI</strong>
-            </div>
-            <div class="dashboard-card" style="padding: 10px; background: #f9f9f9; border-radius: 6px; text-align: center; border: 1px solid #eee;">
-                <small style="color: #888; display: block; font-size: 0.75rem; text-transform: uppercase;">Precipitação</small>
-                <strong style="font-size: 14px; color: #333;"><span id="m-precip"></span>%</strong>
-            </div>
-        </div>
-
-        <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: flex-end;">
-            <button onclick="closeModal()" class="btn-minimal">OK</button>
+                        </td>
+                        <td>{{ recorde[2] }}</td>
+                        <td>
+                            <div style="font-weight: bold;">{{ recorde[3] }}</div>
+                            <div style="font-size: 11px; color: #888;">{{ recorde[4] }}</div>
+                        </td>
+                        <td>{{ recorde[5] }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 30px; color: #888;">
+                            <i class="fa-solid fa-circle-exclamation"
+                                style="font-size: 30px; margin-bottom: 10px;"></i><br>
+                            Nenhum recorde encontrado com estes filtros.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
-</div>
+    <div id="detailsModal" class="modal-overlay">
+        <div class="modal">
+            <h2
+                style="font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="fa-solid fa-circle-info"></i> Detalhes Técnicos</span>
+                <span id="m-tempo" style="color: #cc0000; font-weight: bold;"></span>
+            </h2>
 
-<script>
-  function showDetails(id) {
-    fetch(`/api/lap_details/${id}`)
-        .then(response => response.json())
-        .then(data => {
-            if(data.error) return;
-            document.getElementById('m-tempo').innerText = data.tempo;
-            document.getElementById('m-t-asfalto').innerText = data.temp_asfalto;
-            document.getElementById('m-t-ar').innerText = data.temp_ar;
-            document.getElementById('m-humidade').innerText = data.humidade;
-            document.getElementById('m-precip').innerText = data.precipitacao;
-            document.getElementById('m-pressao').innerText = data.pressao;
-            
-            document.getElementById('detailsModal').classList.add('active');
-        });
-}
+            <div class="dashboard-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="dashboard-card"
+                    style="padding: 10px; background: #f9f9f9; border-radius: 6px; text-align: center; border: 1px solid #eee;">
+                    <small style="color: #888; display: block; font-size: 0.75rem; text-transform: uppercase;">Asfalto /
+                        Ar</small>
+                    <strong style="font-size: 14px; color: #333;"><span id="m-t-asfalto"></span>°C / <span
+                            id="m-t-ar"></span>°C</strong>
+                </div>
+                <div class="dashboard-card"
+                    style="padding: 10px; background: #f9f9f9; border-radius: 6px; text-align: center; border: 1px solid #eee;">
+                    <small
+                        style="color: #888; display: block; font-size: 0.75rem; text-transform: uppercase;">Humidade</small>
+                    <strong style="font-size: 14px; color: #333;"><span id="m-humidade"></span>%</strong>
+                </div>
+                <div class="dashboard-card"
+                    style="padding: 10px; background: #f9f9f9; border-radius: 6px; text-align: center; border: 1px solid #eee;">
+                    <small style="color: #888; display: block; font-size: 0.75rem; text-transform: uppercase;">Pressão
+                        Pneus</small>
+                    <strong style="font-size: 14px; color: #333;"><span id="m-pressao"></span> PSI</strong>
+                </div>
+                <div class="dashboard-card"
+                    style="padding: 10px; background: #f9f9f9; border-radius: 6px; text-align: center; border: 1px solid #eee;">
+                    <small
+                        style="color: #888; display: block; font-size: 0.75rem; text-transform: uppercase;">Precipitação</small>
+                    <strong style="font-size: 14px; color: #333;"><span id="m-precip"></span>%</strong>
+                </div>
+            </div>
 
-  function closeModal() {
-      document.getElementById('detailsModal').classList.remove('active');
-  }
-</script>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                <button onclick="closeModal()" class="btn-minimal">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showDetails(id) {
+            fetch(`/api/lap_details/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) return;
+                    document.getElementById('m-tempo').innerText = data.tempo;
+                    document.getElementById('m-t-asfalto').innerText = data.temp_asfalto;
+                    document.getElementById('m-t-ar').innerText = data.temp_ar;
+                    document.getElementById('m-humidade').innerText = data.humidade;
+                    document.getElementById('m-precip').innerText = data.precipitacao;
+                    document.getElementById('m-pressao').innerText = data.pressao;
+
+                    document.getElementById('detailsModal').classList.add('active');
+                });
+        }
+
+        function closeModal() {
+            document.getElementById('detailsModal').classList.remove('active');
+        }
+    </script>
 </body>
+
 </html>
