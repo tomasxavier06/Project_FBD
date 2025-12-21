@@ -50,7 +50,7 @@ def pilots():
         if ordem.lower() not in ['asc', 'desc']:
             ordem = 'asc'
 
-        query = """ SELECT P.numero_licenca, P.nome, P.data_nascimento, P.nacionalidade, E.nome AS nome_equipa, P.numero_eventos, P.foto_piloto
+        query = """ SELECT P.numero_licenca, P.nome, P.data_nascimento, P.nacionalidade, E.nome AS nome_equipa, P.numero_eventos
                     FROM Piloto P
                     LEFT JOIN Equipa E ON P.id_equipa = E.id_equipa """
         parametros = []
@@ -125,7 +125,7 @@ def team_details(id):
 
         
         cursor.execute("""
-            SELECT numero_licenca, nome, data_nascimento, nacionalidade, foto_piloto 
+            SELECT numero_licenca, nome, data_nascimento, nacionalidade 
             FROM Piloto WHERE id_equipa = ?
         """, (id,))
         pilotos = cursor.fetchall()
@@ -150,44 +150,105 @@ def events():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        pesquisa = request.args.get('nome_procurado')
-        coluna = request.args.get('coluna', 'data_inicio')
-        ordem = request.args.get('ordem', 'asc')
-
-        colunas_validas = ['id_evento', 'nome', 'tipo', 'data_inicio', 'data_fim', 'status']
+        # garante que os status estão atualizados antes de listar
+        cursor.execute("EXEC sp_ManutencaoStatusEventos")
+        conn.commit()
         
-        if coluna not in colunas_validas:
-            coluna = 'data_inicio'
-        if ordem.lower() not in ['asc', 'desc']:
-            ordem = 'asc'
-
-        query = "SELECT id_evento, nome, tipo, data_inicio, data_fim, status FROM Evento"
-        parametros = []
-
-        if pesquisa:
-            query += " WHERE (nome LIKE ? OR tipo LIKE ? OR status LIKE ?)"
-            parametros.extend([f"%{pesquisa}%"] * 3)
-                    
-        query += f" ORDER BY {coluna} {ordem}"
-        
-        cursor.execute(query, tuple(parametros))
+        # lista os eventos com os totais 
+        cursor.execute("EXEC sp_ListarEventosComTotais")
         eventos = cursor.fetchall()
-        conn.close()
         
-        return render_template('events.html', 
-                               eventos=eventos, 
-                               ordem_atual=ordem, 
-                               coluna_ativa=coluna, 
-                               pesquisa_feita=pesquisa)
+        conn.close()
+        return render_template('events.html', eventos=eventos)
     except Exception as e:
-        print(f"Erro real em eventos: {e}")
-        return f"<h3>Erro ao carregar eventos: {e}</h3>"
+        return f"Erro: {e}"
 
 # Define a rota para a página de recordes
 @app.route('/records')
 def records():
-    # Retorna o template records.html
-    return render_template('records.html')
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 1. Obter listas para os dropdowns (Filtros Tradicionais)
+        # Nota: ORDER BY deve coincidir com o SELECT DISTINCT para evitar o erro 42000
+        cursor.execute("SELECT DISTINCT nome FROM Piloto ORDER BY nome")
+        lista_pilotos = [row[0] for row in cursor.fetchall()]
+
+        cursor.execute("SELECT DISTINCT nome FROM Equipa ORDER BY nome")
+        lista_equipas = [row[0] for row in cursor.fetchall()]
+
+        cursor.execute("""
+            SELECT DISTINCT (marca + ' ' + modelo) 
+            FROM Carro 
+            ORDER BY (marca + ' ' + modelo)
+        """)
+        lista_carros = [row[0] for row in cursor.fetchall()]
+
+        cursor.execute("SELECT DISTINCT nome FROM Evento ORDER BY nome")
+        lista_eventos = [row[0] for row in cursor.fetchall()]
+
+        # 2. Capturar os filtros selecionados via GET
+        f_piloto = request.args.get('piloto', '')
+        f_equipa = request.args.get('equipa', '')
+        f_carro = request.args.get('carro', '')
+        f_evento = request.args.get('evento', '')
+
+        # 3. Query Principal de Recordes usando a UDF fn_FormatarTempoMS
+        query = """
+            SELECT 
+                dbo.fn_FormatarTempoMS(V.tempo) as tempo_formatado,
+                P.nome as piloto,
+                E.nome as equipa,
+                C.marca + ' ' + C.modelo as carro,
+                Ev.nome as evento,
+                V.tempo,
+                S.data
+            FROM Volta V
+            INNER JOIN Piloto P ON V.numero_licenca = P.numero_licenca
+            INNER JOIN Equipa E ON P.id_equipa = E.id_equipa
+            INNER JOIN Carro C ON V.carro_VIN = C.VIN
+            INNER JOIN Sessao S ON V.id_sessao = S.id_sessao
+            INNER JOIN Evento Ev ON S.id_evento = Ev.id_evento
+            WHERE 1=1
+        """
+        params = []
+
+        # Aplicação dos filtros via Dropdowns (comparações exatas)
+        if f_piloto:
+            query += " AND P.nome = ?"
+            params.append(f_piloto)
+        if f_equipa:
+            query += " AND E.nome = ?"
+            params.append(f_equipa)
+        if f_carro:
+            query += " AND (C.marca + ' ' + C.modelo) = ?"
+            params.append(f_carro)
+        if f_evento:
+            query += " AND Ev.nome = ?"
+            params.append(f_evento)
+
+        # Ordenar pelo tempo real (milissegundos) do mais rápido para o mais lento
+        query += " ORDER BY V.tempo ASC"
+
+        cursor.execute(query, params)
+        recordes = cursor.fetchall()
+        conn.close()
+
+        # 4. Renderizar o template com todas as listas e filtros
+        return render_template('records.html', 
+                               recordes=recordes,
+                               lista_pilotos=lista_pilotos,
+                               lista_equipas=lista_equipas,
+                               lista_carros=lista_carros,
+                               lista_eventos=lista_eventos,
+                               f_piloto=f_piloto,
+                               f_equipa=f_equipa,
+                               f_carro=f_carro,
+                               f_evento=f_evento)
+    except Exception as e:
+        print(f"Erro detalhado nos recordes: {e}")
+        return f"<h3>Erro ao carregar a página de recordes: {e}</h3>"
 
 @app.route('/welcomeDC')
 def welcomeDC():
