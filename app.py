@@ -463,6 +463,11 @@ def alterar_status_evento(id):
         cursor = conn.cursor()
         
         cursor.execute("UPDATE Evento SET status=? WHERE id_evento=?", (data['status'], id))
+        
+        # If event is concluded, also conclude all its sessions
+        if data['status'] == 'Concluído':
+            cursor.execute("UPDATE Sessao SET status='Concluída' WHERE id_evento=?", (id,))
+        
         conn.commit()
         conn.close()
         
@@ -995,6 +1000,16 @@ def remover_participacao_sessao():
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        # Check if session is in progress
+        cursor.execute("SELECT status FROM Sessao WHERE id_sessao=?", (data['id_sessao'],))
+        sessao = cursor.fetchone()
+        if sessao and sessao[0] == 'A Decorrer':
+            conn.close()
+            return jsonify({
+                'success': False, 
+                'message': 'Não é possível desinscrever de uma sessão que está a decorrer!'
+            }), 400
+        
         cursor.execute("""
             DELETE FROM Participa_Sessao 
             WHERE id_sessao=? AND numero_licenca=? AND VIN_carro=?
@@ -1110,14 +1125,59 @@ def adicionar_piloto():
             conn.close()
             return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
         
-        cursor.execute(
-            "INSERT INTO Piloto (numero_licenca, nome, data_nascimento, nacionalidade, id_equipa, numero_eventos) VALUES (?, ?, ?, ?, ?, 0)",
-            (data['numero_licenca'], data['nome'], data['data_nascimento'], data['nacionalidade'], equipa[0])
-        )
+        # Check if linking an existing unlinked pilot
+        if data.get('vincular_existente'):
+            cursor.execute(
+                "UPDATE Piloto SET id_equipa=? WHERE numero_licenca=? AND id_equipa IS NULL",
+                (equipa[0], data['numero_licenca'])
+            )
+        else:
+            # Check if pilot already exists
+            cursor.execute("SELECT * FROM Piloto WHERE numero_licenca=?", (data['numero_licenca'],))
+            if cursor.fetchone():
+                conn.close()
+                return jsonify({'success': False, 'message': 'Já existe um piloto com este número de licença!'}), 400
+            
+            cursor.execute(
+                "INSERT INTO Piloto (numero_licenca, nome, data_nascimento, nacionalidade, id_equipa, numero_eventos) VALUES (?, ?, ?, ?, ?, 0)",
+                (data['numero_licenca'], data['nome'], data['data_nascimento'], data['nacionalidade'], equipa[0])
+            )
         conn.commit()
         conn.close()
         
         return jsonify({'success': True, 'message': 'Piloto adicionado com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# API to get unlinked pilots (available to join any team)
+@app.route('/api/pilotos_disponiveis')
+def pilotos_disponiveis():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT numero_licenca, nome, data_nascimento, nacionalidade, numero_eventos 
+            FROM Piloto WHERE id_equipa IS NULL
+            ORDER BY nome
+        """)
+        pilotos = cursor.fetchall()
+        conn.close()
+        
+        pilotos_list = []
+        for p in pilotos:
+            pilotos_list.append({
+                'numero_licenca': p[0],
+                'nome': p[1],
+                'data_nascimento': str(p[2]) if p[2] else '',
+                'nacionalidade': p[3],
+                'numero_eventos': p[4]
+            })
+        
+        return jsonify({'success': True, 'pilotos': pilotos_list})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
 
@@ -1151,11 +1211,36 @@ def remover_piloto(id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("DELETE FROM Piloto WHERE numero_licenca=?", (id,))
+        # Get the team of the director
+        cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+        equipa = cursor.fetchone()
+        
+        if equipa is None:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
+        
+        id_equipa = equipa[0]
+        
+        # Check if team is registered in any active event (Por Iniciar or A Decorrer)
+        cursor.execute("""
+            SELECT COUNT(*) FROM Participa_Evento pe
+            INNER JOIN Evento e ON pe.id_evento = e.id_evento
+            WHERE pe.id_equipa = ? AND e.status IN ('Por Iniciar', 'A Decorrer')
+        """, (id_equipa,))
+        
+        if cursor.fetchone()[0] > 0:
+            conn.close()
+            return jsonify({
+                'success': False, 
+                'message': 'Não é possível remover pilotos enquanto a equipa está inscrita em eventos que ainda não terminaram.'
+            }), 400
+        
+        # Unlink pilot from team instead of deleting
+        cursor.execute("UPDATE Piloto SET id_equipa=NULL WHERE numero_licenca=? AND id_equipa=?", (id, id_equipa))
         conn.commit()
         conn.close()
         
-        return jsonify({'success': True, 'message': 'Piloto removido com sucesso!'})
+        return jsonify({'success': True, 'message': 'Piloto desvinculado da equipa com sucesso!'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
 
@@ -1206,14 +1291,61 @@ def adicionar_carro():
             conn.close()
             return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
         
-        cursor.execute(
-            "INSERT INTO Carro (VIN, modelo, marca, categoria, tipo_motor, potencia, peso, id_equipa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (data['vin'], data['modelo'], data['marca'], data['categoria'], data['tipo_motor'], data['potencia'], data['peso'], equipa[0])
-        )
+        # Check if linking an existing unlinked car
+        if data.get('vincular_existente'):
+            cursor.execute(
+                "UPDATE Carro SET id_equipa=? WHERE VIN=? AND id_equipa IS NULL",
+                (equipa[0], data['vin'])
+            )
+        else:
+            # Check if car already exists
+            cursor.execute("SELECT * FROM Carro WHERE VIN=?", (data['vin'],))
+            if cursor.fetchone():
+                conn.close()
+                return jsonify({'success': False, 'message': 'Já existe um carro com este VIN!'}), 400
+            
+            cursor.execute(
+                "INSERT INTO Carro (VIN, modelo, marca, categoria, tipo_motor, potencia, peso, id_equipa) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (data['vin'], data['modelo'], data['marca'], data['categoria'], data['tipo_motor'], data['potencia'], data['peso'], equipa[0])
+            )
         conn.commit()
         conn.close()
         
         return jsonify({'success': True, 'message': 'Carro adicionado com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# API to get unlinked cars (available to join any team)
+@app.route('/api/carros_disponiveis')
+def carros_disponiveis():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT VIN, modelo, marca, categoria, tipo_motor, potencia, peso 
+            FROM Carro WHERE id_equipa IS NULL
+            ORDER BY marca, modelo
+        """)
+        carros = cursor.fetchall()
+        conn.close()
+        
+        carros_list = []
+        for c in carros:
+            carros_list.append({
+                'vin': c[0],
+                'modelo': c[1],
+                'marca': c[2],
+                'categoria': c[3],
+                'tipo_motor': c[4],
+                'potencia': c[5],
+                'peso': c[6]
+            })
+        
+        return jsonify({'success': True, 'carros': carros_list})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
 
@@ -1247,11 +1379,36 @@ def remover_carro(vin):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("DELETE FROM Carro WHERE VIN=?", (vin,))
+        # Get the team of the director
+        cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+        equipa = cursor.fetchone()
+        
+        if equipa is None:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
+        
+        id_equipa = equipa[0]
+        
+        # Check if team is registered in any active event (Por Iniciar or A Decorrer)
+        cursor.execute("""
+            SELECT COUNT(*) FROM Participa_Evento pe
+            INNER JOIN Evento e ON pe.id_evento = e.id_evento
+            WHERE pe.id_equipa = ? AND e.status IN ('Por Iniciar', 'A Decorrer')
+        """, (id_equipa,))
+        
+        if cursor.fetchone()[0] > 0:
+            conn.close()
+            return jsonify({
+                'success': False, 
+                'message': 'Não é possível remover carros enquanto a equipa está inscrita em eventos que ainda não terminaram.'
+            }), 400
+        
+        # Unlink car from team instead of deleting
+        cursor.execute("UPDATE Carro SET id_equipa=NULL WHERE VIN=? AND id_equipa=?", (vin, id_equipa))
         conn.commit()
         conn.close()
         
-        return jsonify({'success': True, 'message': 'Carro removido com sucesso!'})
+        return jsonify({'success': True, 'message': 'Carro desvinculado da equipa com sucesso!'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
 
@@ -1492,9 +1649,10 @@ def login():
             data = request.get_json()
             username = data['username']
             password = data['password']
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
             conn = get_db_connection()  
             cursor = conn.cursor()
-            cursor.execute('SELECT id_utilizador, username, email FROM Utilizador WHERE username = ? AND password = ?', (username, password))
+            cursor.execute('SELECT id_utilizador, username, email FROM Utilizador WHERE username = ? AND password = ?', (username, password_hash))
             utilizador = cursor.fetchone()
             if utilizador:
                 id_utilizador = utilizador[0]
@@ -1536,14 +1694,15 @@ def register():
             username = data['username']
             email = data['email']
             password = data['password']
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
             tipo = data['role']
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # Inserir utilizador (ID é gerado automaticamente pelo IDENTITY)
+            # Inserir utilizador com password hasheada
             cursor.execute(
                 "INSERT INTO Utilizador (username, email, password, nome) OUTPUT INSERTED.ID_utilizador VALUES (?, ?, ?, ?)",
-                (username, email, password, nome)
+                (username, email, password_hash, nome)
             )
             id_utilizador = cursor.fetchone()[0]
             
@@ -1571,6 +1730,59 @@ def register():
     
     # GET request - retorna o template
     return render_template('register.html')
+
+@app.route('/settings')
+def settings():
+    if 'loggedin' not in session:
+        return redirect('/login')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT username, email, nome FROM Utilizador WHERE ID_utilizador=?", (session['id'],))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if user is None:
+        return redirect('/logout')
+    
+    return render_template('settings.html', username=user[0], email=user[1], nome=user[2])
+
+@app.route('/api/settings', methods=['PUT'])
+def update_settings():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Update name
+        if data.get('nome'):
+            cursor.execute("UPDATE Utilizador SET nome=? WHERE ID_utilizador=?", (data['nome'], session['id']))
+        
+        # Update password if provided
+        if data.get('password_atual') and data.get('password_nova'):
+            # Verify current password
+            cursor.execute("SELECT password FROM Utilizador WHERE ID_utilizador=?", (session['id'],))
+            user = cursor.fetchone()
+            
+            password_hash = hashlib.sha256(data['password_atual'].encode()).hexdigest()
+            if user[0] != password_hash:
+                conn.close()
+                return jsonify({'success': False, 'message': 'Password atual incorreta!'}), 400
+            
+            # Update password
+            new_password_hash = hashlib.sha256(data['password_nova'].encode()).hexdigest()
+            cursor.execute("UPDATE Utilizador SET password=? WHERE ID_utilizador=?", (new_password_hash, session['id']))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Definições atualizadas com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
 
 @app.route('/logout')
 def logout():

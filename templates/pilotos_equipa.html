@@ -89,40 +89,183 @@
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <h2 id="modalTitle">Adicionar Piloto</h2>
-            <form id="pilotoForm">
-                <input type="hidden" id="editMode" value="false">
-                <input type="hidden" id="pilotoId">
-                <div class="form-group">
-                    <label for="numero_licenca">Número de Licença</label>
-                    <input type="number" id="numero_licenca" name="numero_licenca" min="1" required>
-                </div>
-                <div class="form-group">
-                    <label for="nome">Nome</label>
-                    <input type="text" id="nome" name="nome" required>
-                </div>
-                <div class="form-group">
-                    <label for="data_nascimento">Data de Nascimento</label>
-                    <input type="date" id="data_nascimento" name="data_nascimento" required>
-                </div>
-                <div class="form-group">
-                    <label for="nacionalidade">Nacionalidade</label>
-                    <input type="text" id="nacionalidade" name="nacionalidade" required>
+
+            <!-- Tabs for New vs Available -->
+            <div class="modal-tabs" id="modalTabs">
+                <button class="tab-btn active" onclick="showTab('novo')">Novo Piloto</button>
+                <button class="tab-btn" onclick="showTab('disponivel')">Pilotos Disponíveis</button>
+            </div>
+
+            <!-- Tab: New Pilot Form -->
+            <div id="tabNovo" class="tab-content active">
+                <form id="pilotoForm">
+                    <input type="hidden" id="editMode" value="false">
+                    <input type="hidden" id="pilotoId">
+                    <div class="form-group">
+                        <label for="numero_licenca">Número de Licença</label>
+                        <input type="number" id="numero_licenca" name="numero_licenca" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nome">Nome</label>
+                        <input type="text" id="nome" name="nome" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="data_nascimento">Data de Nascimento</label>
+                        <input type="date" id="data_nascimento" name="data_nascimento" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nacionalidade">Nacionalidade</label>
+                        <input type="text" id="nacionalidade" name="nacionalidade" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-cancel" onclick="fecharModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tab: Available Pilots List -->
+            <div id="tabDisponivel" class="tab-content">
+                <div id="pilotosDisponiveis" class="available-list">
+                    <p class="loading">A carregar...</p>
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-cancel" onclick="fecharModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-cancel" onclick="fecharModal()">Fechar</button>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 
+    <style>
+        .modal-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .available-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .available-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .available-item:hover {
+            background: #f9f9f9;
+        }
+
+        .available-item .info {
+            flex: 1;
+        }
+
+        .available-item .info strong {
+            display: block;
+        }
+
+        .available-item .info small {
+            color: #666;
+        }
+
+        .empty-message {
+            color: #999;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+
     <script>
+        function showTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            if (tab === 'novo') {
+                document.querySelector('.tab-btn:first-child').classList.add('active');
+                document.getElementById('tabNovo').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn:last-child').classList.add('active');
+                document.getElementById('tabDisponivel').classList.add('active');
+                carregarPilotosDisponiveis();
+            }
+        }
+
+        function carregarPilotosDisponiveis() {
+            fetch('/api/pilotos_disponiveis')
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('pilotosDisponiveis');
+                    if (!data.success || data.pilotos.length === 0) {
+                        container.innerHTML = '<p class="empty-message">Não há pilotos disponíveis</p>';
+                        return;
+                    }
+                    let html = '';
+                    data.pilotos.forEach(p => {
+                        html += `<div class="available-item">
+                            <div class="info">
+                                <strong>${p.nome}</strong>
+                                <small>Licença: ${p.numero_licenca} | ${p.nacionalidade} | ${p.numero_eventos} eventos</small>
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="vincularPiloto(${p.numero_licenca})">
+                                <i class="fa-solid fa-plus"></i> Adicionar
+                            </button>
+                        </div>`;
+                    });
+                    container.innerHTML = html;
+                });
+        }
+
+        function vincularPiloto(licenca) {
+            fetch('/api/piloto', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ numero_licenca: licenca, vincular_existente: true })
+            })
+                .then(r => r.json())
+                .then(result => {
+                    if (result.success) location.reload();
+                    else alert('Erro: ' + result.message);
+                });
+        }
+
         function abrirModal() {
             document.getElementById('modalOverlay').classList.add('active');
             document.getElementById('modalTitle').textContent = 'Adicionar Piloto';
+            document.getElementById('modalTabs').style.display = 'flex';
             document.getElementById('editMode').value = 'false';
             document.getElementById('pilotoForm').reset();
             document.getElementById('numero_licenca').disabled = false;
+            showTab('novo');
         }
 
         function fecharModal() {
@@ -137,6 +280,7 @@
 
             document.getElementById('modalOverlay').classList.add('active');
             document.getElementById('modalTitle').textContent = 'Editar Piloto';
+            document.getElementById('modalTabs').style.display = 'none';
             document.getElementById('editMode').value = 'true';
             document.getElementById('pilotoId').value = id;
             document.getElementById('numero_licenca').value = id;
@@ -144,21 +288,17 @@
             document.getElementById('nome').value = nome;
             document.getElementById('data_nascimento').value = data;
             document.getElementById('nacionalidade').value = nacionalidade;
+            showTab('novo');
         }
 
         function removerPiloto(btn) {
             const id = btn.dataset.id;
-            if (confirm('Tem a certeza que deseja remover este piloto?')) {
-                fetch('/api/piloto/' + id, {
-                    method: 'DELETE'
-                })
+            if (confirm('Tem a certeza que deseja remover este piloto da equipa?')) {
+                fetch('/api/piloto/' + id, { method: 'DELETE' })
                     .then(response => response.json())
                     .then(result => {
-                        if (result.success) {
-                            location.reload();
-                        } else {
-                            alert('Erro: ' + result.message);
-                        }
+                        if (result.success) location.reload();
+                        else alert('Erro: ' + result.message);
                     })
                     .catch(error => alert('Erro: ' + error));
             }
@@ -184,16 +324,12 @@
             })
                 .then(response => response.json())
                 .then(result => {
-                    if (result.success) {
-                        location.reload();
-                    } else {
-                        alert('Erro: ' + result.message);
-                    }
+                    if (result.success) location.reload();
+                    else alert('Erro: ' + result.message);
                 })
                 .catch(error => alert('Erro: ' + error));
         });
 
-        // Fechar modal ao clicar fora
         document.getElementById('modalOverlay').addEventListener('click', function (e) {
             if (e.target === this) fecharModal();
         });
