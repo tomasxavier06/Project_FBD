@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="pt">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Inscrever em Eventos - Estoril Track Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/sidebar.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/management.css">
+</head>
+
+<body>
+    <aside class="sidebar" aria-label="Barra lateral">
+        <nav>
+            <button class="sidebar-btn" onclick="window.location.href='/welcomeDE'">
+                <i class="fa-solid fa-house"></i>
+                <span>Página Inicial</span>
+            </button>
+        </nav>
+        <div class="sidebar-bottom">
+            <button class="sidebar-btn settings" onclick="window.location.href='/settings'">
+                <i class="fa-solid fa-gear"></i>
+                <span>Definições</span>
+            </button>
+            <button class="sidebar-btn logout" onclick="window.location.href='/logout'">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Terminar Sessão</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h1><i class="fa-solid fa-calendar-plus"></i> Inscrever em Eventos</h1>
+                <p class="team-name">{{ equipa[1] }} - Eventos disponíveis para inscrição</p>
+            </div>
+            <a href="/welcomeDE" class="btn btn-cancel">
+                <i class="fa-solid fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+
+        <div class="events-list">
+            {% if eventos %}
+            {% for evento in eventos %}
+            <div class="event-card" id="evento-{{ evento.id }}">
+                <div class="event-header">
+                    <div class="event-info">
+                        <h2>{{ evento.nome }}</h2>
+                        <div class="event-meta">
+                            <span class="event-type"><i class="fa-solid fa-tag"></i> {{ evento.tipo }}</span>
+                            <span class="event-dates"><i class="fa-solid fa-calendar"></i> {{ evento.data_inicio }} - {{
+                                evento.data_fim }}</span>
+                            <span class="status-badge status-{{ evento.status|lower|replace(' ', '-') }}">{{
+                                evento.status }}</span>
+                        </div>
+                    </div>
+                    <div class="event-actions">
+                        <button class="btn btn-sm btn-expand" onclick="toggleSessoes({{ evento.id }})">
+                            <i class="fa-solid fa-chevron-down" id="icon-{{ evento.id }}"></i> Ver Sessões
+                        </button>
+                        {% if evento.inscrito %}
+                        <button class="btn btn-sm btn-inscrito" disabled>
+                            <i class="fa-solid fa-check"></i> Inscrito
+                        </button>
+                        <button class="btn btn-sm btn-delete" onclick="cancelarInscricao({{ evento.id }})">
+                            <i class="fa-solid fa-times"></i> Cancelar
+                        </button>
+                        {% else %}
+                        <button class="btn btn-sm btn-primary" onclick="inscreverEvento({{ evento.id }})">
+                            <i class="fa-solid fa-plus"></i> Inscrever
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="sessions-container" id="sessoes-{{ evento.id }}" style="display: none;">
+                    <div class="sessions-header">
+                        <h3><i class="fa-solid fa-stopwatch"></i> Sessões do Evento ({{ evento.num_sessoes }})</h3>
+                    </div>
+                    <div class="sessions-list" id="lista-sessoes-{{ evento.id }}">
+                        <div class="loading"><i class="fa-solid fa-spinner fa-spin"></i> A carregar sessões...</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-calendar-xmark"></i>
+                <p>Não há eventos disponíveis para inscrição</p>
+                <p class="sub-text">Verifique mais tarde por novos eventos</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <style>
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .event-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .event-info h2 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .event-meta {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .event-meta span {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .event-meta i {
+            margin-right: 5px;
+            color: #888;
+        }
+
+        .event-type {
+            background: #f5f5f5;
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+
+        .event-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-expand {
+            background: #f0f7ff;
+            color: #3b82f6;
+            border: 1px solid #d0e3ff;
+        }
+
+        .btn-expand:hover {
+            background: #e0efff;
+        }
+
+        .btn-inscrito {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            cursor: default;
+        }
+
+        .sessions-container {
+            background: #fafafa;
+            border-top: 1px solid #e0e0e0;
+            padding: 20px;
+        }
+
+        .sessions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .sessions-header h3 {
+            margin: 0;
+            font-size: 15px;
+            color: #555;
+        }
+
+        .sessions-header h3 i {
+            margin-right: 8px;
+            color: #3b82f6;
+        }
+
+        .sessions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .session-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px 16px;
+        }
+
+        .session-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .session-info strong {
+            color: #333;
+            min-width: 120px;
+        }
+
+        .session-info span {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .session-info i {
+            margin-right: 5px;
+            color: #888;
+        }
+
+        .no-sessions {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+        }
+
+        .no-sessions i {
+            font-size: 30px;
+            margin-bottom: 10px;
+            color: #ccc;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-por-iniciar {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .status-a-decorrer {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .empty-state .sub-text {
+            color: #999;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .event-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .event-actions {
+                width: 100%;
+            }
+        }
+    </style>
+
+    <script>
+        let sessoesCarregadas = {};
+
+        function toggleSessoes(eventoId) {
+            const container = document.getElementById('sessoes-' + eventoId);
+            const icon = document.getElementById('icon-' + eventoId);
+
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                icon.className = 'fa-solid fa-chevron-up';
+                if (!sessoesCarregadas[eventoId]) {
+                    carregarSessoes(eventoId);
+                }
+            } else {
+                container.style.display = 'none';
+                icon.className = 'fa-solid fa-chevron-down';
+            }
+        }
+
+        function carregarSessoes(eventoId) {
+            fetch('/api/evento/' + eventoId + '/sessoes')
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        sessoesCarregadas[eventoId] = true;
+                        renderizarSessoes(eventoId, result.sessoes);
+                    } else {
+                        document.getElementById('lista-sessoes-' + eventoId).innerHTML =
+                            '<div class="no-sessions"><p>Erro ao carregar sessões</p></div>';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('lista-sessoes-' + eventoId).innerHTML =
+                        '<div class="no-sessions"><p>Erro ao carregar sessões</p></div>';
+                });
+        }
+
+        function renderizarSessoes(eventoId, sessoes) {
+            const container = document.getElementById('lista-sessoes-' + eventoId);
+
+            if (sessoes.length === 0) {
+                container.innerHTML = `
+                    <div class="no-sessions">
+                        <i class="fa-solid fa-stopwatch"></i>
+                        <p>Nenhuma sessão definida</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            sessoes.forEach(sessao => {
+                html += `
+                    <div class="session-item">
+                        <div class="session-info">
+                            <strong>${sessao.tipo}</strong>
+                            <span><i class="fa-solid fa-calendar"></i> ${sessao.data}</span>
+                            <span><i class="fa-solid fa-clock"></i> ${sessao.hora_inicio} - ${sessao.hora_fim}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function inscreverEvento(eventoId) {
+            fetch('/api/inscricao', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id_evento: eventoId })
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + result.message);
+                    }
+                })
+                .catch(error => alert('Erro: ' + error));
+        }
+
+        function cancelarInscricao(eventoId) {
+            if (confirm('Tem a certeza que deseja cancelar a inscrição neste evento?')) {
+                fetch('/api/inscricao/' + eventoId, {
+                    method: 'DELETE'
+                })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            location.reload();
+                        } else {
+                            alert('Erro: ' + result.message);
+                        }
+                    })
+                    .catch(error => alert('Erro: ' + error));
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -35,7 +35,7 @@
         <div class="page-header">
             <div>
                 <h1><i class="fa-solid fa-calendar-plus"></i> Criar Evento</h1>
-                <p class="team-name">Preencha os dados do novo evento</p>
+                <p class="team-name">Preencha os dados do evento e adicione as sessões</p>
             </div>
             <a href="/welcomeDC" class="btn btn-cancel">
                 <i class="fa-solid fa-arrow-left"></i> Voltar
@@ -44,6 +44,12 @@
 
         <div class="form-container">
             <form id="criarEventoForm">
+                <!-- Event Details Section -->
+                <div class="section-header">
+                    <i class="fa-solid fa-calendar"></i>
+                    <h2>Detalhes do Evento</h2>
+                </div>
+
                 <div class="form-group">
                     <label for="nome">Nome do Evento</label>
                     <input type="text" id="nome" name="nome" placeholder="Ex: Grande Prémio de Portugal" required />
@@ -54,9 +60,9 @@
                     <select id="tipo" name="tipo" required>
                         <option value="">Selecione o tipo</option>
                         <option value="Corrida">Corrida</option>
-                        <option value="Treino Livre">Treino Livre</option>
-                        <option value="Qualificação">Qualificação</option>
-                        <option value="Teste Privado">Teste Privado</option>
+                        <option value="Treino">Treino</option>
+                        <option value="Endurance">Endurance</option>
+                        <option value="Festival">Festival</option>
                         <option value="Track Day">Track Day</option>
                     </select>
                 </div>
@@ -72,10 +78,25 @@
                     </div>
                 </div>
 
+                <!-- Sessions Section -->
+                <div class="section-header sessions-header">
+                    <div>
+                        <i class="fa-solid fa-flag-checkered"></i>
+                        <h2>Sessões do Evento</h2>
+                    </div>
+                    <button type="button" class="btn btn-add-session" onclick="adicionarSessao()">
+                        <i class="fa-solid fa-plus"></i> Adicionar Sessão
+                    </button>
+                </div>
+
+                <div id="sessoesContainer">
+                    <!-- Sessions will be added here dynamically -->
+                </div>
+
                 <div class="info-box">
                     <i class="fa-solid fa-circle-info"></i>
-                    <p>O evento será criado com o estado <strong>"Por Iniciar"</strong>. Pode alterar o estado
-                        posteriormente na página de gestão de eventos.</p>
+                    <p>Adicione pelo menos uma sessão ao evento. As condições meteorológicas podem ser atualizadas
+                        posteriormente.</p>
                 </div>
 
                 <div class="modal-actions">
@@ -95,7 +116,123 @@
             border: 1px solid #eee;
             border-radius: 8px;
             padding: 30px;
-            max-width: 600px;
+            max-width: 800px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .section-header i {
+            color: #3b82f6;
+            font-size: 20px;
+        }
+
+        .sessions-header {
+            margin-top: 30px;
+            justify-content: space-between;
+        }
+
+        .sessions-header>div {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-add-session {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+
+        .btn-add-session:hover {
+            background: #059669;
+        }
+
+        .session-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .session-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .session-card-header h3 {
+            margin: 0;
+            font-size: 15px;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .session-card-header h3 i {
+            color: #3b82f6;
+        }
+
+        .btn-remove-session {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: background 0.2s;
+        }
+
+        .btn-remove-session:hover {
+            background: #fecaca;
+        }
+
+        .session-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .session-form-row.four-cols {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        @media (max-width: 768px) {
+            .session-form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .session-form-row.four-cols {
+                grid-template-columns: 1fr 1fr;
+            }
         }
 
         .info-box {
@@ -123,7 +260,8 @@
             line-height: 1.5;
         }
 
-        .form-group select {
+        .form-group select,
+        .form-group input[type="time"] {
             width: 100%;
             padding: 10px 12px;
             border: 1px solid #ddd;
@@ -134,14 +272,36 @@
             cursor: pointer;
         }
 
-        .form-group select:focus {
+        .form-group select:focus,
+        .form-group input[type="time"]:focus {
             outline: none;
             border-color: #999;
             background: #fff;
         }
+
+        .no-sessions {
+            text-align: center;
+            padding: 40px 20px;
+            background: #f9fafb;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            color: #666;
+        }
+
+        .no-sessions i {
+            font-size: 40px;
+            color: #ccc;
+            margin-bottom: 10px;
+        }
+
+        .no-sessions p {
+            margin: 5px 0;
+        }
     </style>
 
     <script>
+        let contadorSessoes = 0;
+
         // Define minimum date as today
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('data_inicio').min = today;
@@ -153,7 +313,116 @@
             if (document.getElementById('data_fim').value < this.value) {
                 document.getElementById('data_fim').value = this.value;
             }
+            atualizarDatasSessoes();
         });
+
+        document.getElementById('data_fim').addEventListener('change', atualizarDatasSessoes);
+
+        function atualizarDatasSessoes() {
+            const dataInicio = document.getElementById('data_inicio').value;
+            const dataFim = document.getElementById('data_fim').value;
+
+            document.querySelectorAll('.sessao-data').forEach(input => {
+                input.min = dataInicio;
+                input.max = dataFim;
+                if (input.value && (input.value < dataInicio || input.value > dataFim)) {
+                    input.value = dataInicio;
+                }
+            });
+        }
+
+        function adicionarSessao() {
+            contadorSessoes++;
+            const container = document.getElementById('sessoesContainer');
+            const dataInicio = document.getElementById('data_inicio').value;
+            const dataFim = document.getElementById('data_fim').value;
+
+            const sessaoHtml = `
+                <div class="session-card" id="sessao-${contadorSessoes}">
+                    <div class="session-card-header">
+                        <h3><i class="fa-solid fa-stopwatch"></i> Sessão ${contadorSessoes}</h3>
+                        <button type="button" class="btn-remove-session" onclick="removerSessao(${contadorSessoes})">
+                            <i class="fa-solid fa-trash"></i> Remover
+                        </button>
+                    </div>
+                    <div class="session-form-row">
+                        <div class="form-group">
+                            <label>Data da Sessão</label>
+                            <input type="date" class="sessao-data" name="sessao_data_${contadorSessoes}" 
+                                   min="${dataInicio}" max="${dataFim}" value="${dataInicio}" required />
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de Sessão</label>
+                            <select name="sessao_tipo_${contadorSessoes}" required>
+                                <option value="">Selecione o tipo</option>
+                                <option value="Treino Livre 1">Treino Livre 1</option>
+                                <option value="Treino Livre 2">Treino Livre 2</option>
+                                <option value="Treino Livre 3">Treino Livre 3</option>
+                                <option value="Qualificação">Qualificação</option>
+                                <option value="Corrida">Corrida</option>
+                                <option value="Warm-Up">Warm-Up</option>
+                                <option value="Teste">Teste</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="session-form-row">
+                        <div class="form-group">
+                            <label>Hora de Início</label>
+                            <input type="time" name="sessao_hora_inicio_${contadorSessoes}" value="09:00" required />
+                        </div>
+                        <div class="form-group">
+                            <label>Hora de Fim</label>
+                            <input type="time" name="sessao_hora_fim_${contadorSessoes}" value="10:30" required />
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', sessaoHtml);
+            atualizarNumerosSessoes();
+        }
+
+        function removerSessao(id) {
+            const sessao = document.getElementById(`sessao-${id}`);
+            if (sessao) {
+                sessao.remove();
+                atualizarNumerosSessoes();
+            }
+        }
+
+        function atualizarNumerosSessoes() {
+            const sessoes = document.querySelectorAll('.session-card');
+            sessoes.forEach((sessao, index) => {
+                const header = sessao.querySelector('h3');
+                header.innerHTML = `<i class="fa-solid fa-stopwatch"></i> Sessão ${index + 1}`;
+            });
+        }
+
+        function obterSessoes() {
+            const sessoes = [];
+            const cards = document.querySelectorAll('.session-card');
+
+            cards.forEach(card => {
+                const id = card.id.split('-')[1];
+                const data = card.querySelector(`[name="sessao_data_${id}"]`).value;
+                const tipo = card.querySelector(`[name="sessao_tipo_${id}"]`).value;
+                const horaInicio = card.querySelector(`[name="sessao_hora_inicio_${id}"]`).value;
+                const horaFim = card.querySelector(`[name="sessao_hora_fim_${id}"]`).value;
+
+                if (horaFim <= horaInicio) {
+                    throw new Error(`Sessão ${sessoes.length + 1}: A hora de fim deve ser posterior à hora de início`);
+                }
+
+                sessoes.push({
+                    data: data,
+                    tipo: tipo,
+                    hora_inicio: horaInicio,
+                    hora_fim: horaFim
+                });
+            });
+
+            return sessoes;
+        }
 
         document.getElementById('criarEventoForm').addEventListener('submit', function (e) {
             e.preventDefault();
@@ -166,11 +435,25 @@
                 return;
             }
 
+            let sessoes;
+            try {
+                sessoes = obterSessoes();
+            } catch (error) {
+                alert(error.message);
+                return;
+            }
+
+            if (sessoes.length === 0) {
+                alert('Por favor, adicione pelo menos uma sessão ao evento.');
+                return;
+            }
+
             const data = {
                 nome: document.getElementById('nome').value,
                 tipo: document.getElementById('tipo').value,
                 data_inicio: dataInicio,
-                data_fim: dataFim
+                data_fim: dataFim,
+                sessoes: sessoes
             };
 
             fetch('/criar_evento', {
@@ -193,6 +476,9 @@
                     alert('Erro ao criar evento: ' + error);
                 });
         });
+
+        // Add first session by default
+        adicionarSessao();
     </script>
 </body>
 

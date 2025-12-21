@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="pt">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Condições de Pista - Estoril Track Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/sidebar.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/management.css">
+</head>
+
+<body>
+    <aside class="sidebar" aria-label="Barra lateral">
+        <nav>
+            <button class="sidebar-btn" onclick="window.location.href='/welcomeTP'">
+                <i class="fa-solid fa-house"></i>
+                <span>Página Inicial</span>
+            </button>
+        </nav>
+        <div class="sidebar-bottom">
+            <button class="sidebar-btn settings" onclick="window.location.href='/settings'">
+                <i class="fa-solid fa-gear"></i>
+                <span>Definições</span>
+            </button>
+            <button class="sidebar-btn logout" onclick="window.location.href='/logout'">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Terminar Sessão</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h1><i class="fa-solid fa-cloud-sun"></i> Condições de Pista</h1>
+                <p class="team-name">Atualizar condições meteorológicas das sessões ativas</p>
+            </div>
+            <a href="/welcomeTP" class="btn btn-cancel">
+                <i class="fa-solid fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+
+        <div class="sessions-list">
+            {% if sessoes %}
+            {% for sessao in sessoes %}
+            <div class="session-card" id="sessao-{{ sessao.id }}">
+                <div class="session-header">
+                    <div class="session-info-main">
+                        <h2>{{ sessao.evento_nome }}</h2>
+                        <div class="session-meta">
+                            <span class="session-type"><i class="fa-solid fa-flag-checkered"></i> {{ sessao.tipo
+                                }}</span>
+                            <span><i class="fa-solid fa-calendar"></i> {{ sessao.data }}</span>
+                            <span><i class="fa-solid fa-clock"></i> {{ sessao.hora_inicio }} - {{ sessao.hora_fim
+                                }}</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-expand" onclick="toggleForm({{ sessao.id }})">
+                        <i class="fa-solid fa-chevron-down" id="icon-{{ sessao.id }}"></i> Editar Condições
+                    </button>
+                </div>
+
+                <div class="conditions-display">
+                    <div class="condition-item">
+                        <i class="fa-solid fa-temperature-high"></i>
+                        <span>Asfalto</span>
+                        <strong id="display-asfalto-{{ sessao.id }}">{{ sessao.temperatura_asfalto or '--' }}°C</strong>
+                    </div>
+                    <div class="condition-item">
+                        <i class="fa-solid fa-thermometer-half"></i>
+                        <span>Ar</span>
+                        <strong id="display-ar-{{ sessao.id }}">{{ sessao.temperatura_ar or '--' }}°C</strong>
+                    </div>
+                    <div class="condition-item">
+                        <i class="fa-solid fa-droplet"></i>
+                        <span>Humidade</span>
+                        <strong id="display-humidade-{{ sessao.id }}">{{ sessao.humidade or '--' }}%</strong>
+                    </div>
+                    <div class="condition-item">
+                        <i class="fa-solid fa-cloud-rain"></i>
+                        <span>Precipitação</span>
+                        <strong id="display-precip-{{ sessao.id }}">{{ sessao.precipitacao or '--' }}mm</strong>
+                    </div>
+                </div>
+
+                <div class="conditions-form" id="form-{{ sessao.id }}" style="display: none;">
+                    <form onsubmit="guardarCondicoes(event, {{ sessao.id }})">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-temperature-high"></i> Temperatura Asfalto (°C)</label>
+                                <input type="number" id="asfalto-{{ sessao.id }}"
+                                    value="{{ sessao.temperatura_asfalto or '' }}" placeholder="Ex: 35" min="-20"
+                                    max="80" />
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-thermometer-half"></i> Temperatura Ar (°C)</label>
+                                <input type="number" id="ar-{{ sessao.id }}" value="{{ sessao.temperatura_ar or '' }}"
+                                    placeholder="Ex: 25" min="-20" max="60" />
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-droplet"></i> Humidade (%)</label>
+                                <input type="number" id="humidade-{{ sessao.id }}" value="{{ sessao.humidade or '' }}"
+                                    placeholder="Ex: 45" min="0" max="100" />
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-cloud-rain"></i> Precipitação (mm)</label>
+                                <input type="number" id="precip-{{ sessao.id }}" value="{{ sessao.precipitacao or '' }}"
+                                    placeholder="Ex: 0" min="0" max="500" />
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-cancel"
+                                onclick="toggleForm({{ sessao.id }})">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa-solid fa-save"></i> Guardar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-cloud-sun"></i>
+                <p>Não há sessões ativas no momento</p>
+                <p class="sub-text">As sessões aparecerão aqui quando estiverem a decorrer</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <style>
+        .sessions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .session-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            gap: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .session-info-main h2 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .session-meta {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .session-meta span {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .session-meta i {
+            margin-right: 5px;
+            color: #888;
+        }
+
+        .session-type {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .btn-expand {
+            background: #f0f7ff;
+            color: #3b82f6;
+            border: 1px solid #d0e3ff;
+        }
+
+        .btn-expand:hover {
+            background: #e0efff;
+        }
+
+        .conditions-display {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            padding: 20px;
+            background: #fafafa;
+        }
+
+        .condition-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+
+        .condition-item i {
+            font-size: 24px;
+            color: #3b82f6;
+        }
+
+        .condition-item span {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .condition-item strong {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .conditions-form {
+            padding: 20px;
+            background: #f5f5f5;
+            border-top: 1px solid #eee;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .form-group label i {
+            color: #3b82f6;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .empty-state .sub-text {
+            color: #999;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .session-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .conditions-display,
+            .form-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+
+    <script>
+        function toggleForm(sessaoId) {
+            const form = document.getElementById('form-' + sessaoId);
+            const icon = document.getElementById('icon-' + sessaoId);
+
+            if (form.style.display === 'none') {
+                form.style.display = 'block';
+                icon.className = 'fa-solid fa-chevron-up';
+            } else {
+                form.style.display = 'none';
+                icon.className = 'fa-solid fa-chevron-down';
+            }
+        }
+
+        function guardarCondicoes(event, sessaoId) {
+            event.preventDefault();
+
+            const data = {
+                temperatura_asfalto: document.getElementById('asfalto-' + sessaoId).value || null,
+                temperatura_ar: document.getElementById('ar-' + sessaoId).value || null,
+                humidade: document.getElementById('humidade-' + sessaoId).value || null,
+                precipitacao: document.getElementById('precip-' + sessaoId).value || null
+            };
+
+            fetch('/api/sessao/' + sessaoId + '/condicoes', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        // Update display values
+                        document.getElementById('display-asfalto-' + sessaoId).textContent =
+                            (data.temperatura_asfalto || '--') + '°C';
+                        document.getElementById('display-ar-' + sessaoId).textContent =
+                            (data.temperatura_ar || '--') + '°C';
+                        document.getElementById('display-humidade-' + sessaoId).textContent =
+                            (data.humidade || '--') + '%';
+                        document.getElementById('display-precip-' + sessaoId).textContent =
+                            (data.precipitacao || '--') + 'mm';
+
+                        toggleForm(sessaoId);
+                        alert('Condições atualizadas com sucesso!');
+                    } else {
+                        alert('Erro: ' + result.message);
+                    }
+                })
+                .catch(error => alert('Erro: ' + error));
+        }
+    </script>
+</body>
+
+</html>

@@ -220,14 +220,32 @@ def criar_evento():
     if request.method == 'POST':
         try:
             data = request.get_json()
+            
+            # Insert event and get the new ID
             cursor.execute(
-                "INSERT INTO Evento (nome, tipo, data_inicio, data_fim, status, ID_utilizador_gestor_de_corrida) VALUES (?, ?, ?, ?, ?, ?)",
-                (data['nome'], data['tipo'], data['data_inicio'], data['data_fim'], 'Por Iniciar', session['id'])
+                "INSERT INTO Evento (nome, tipo, data_inicio, data_fim, status) OUTPUT INSERTED.id_evento VALUES (?, ?, ?, ?, ?)",
+                (data['nome'], data['tipo'], data['data_inicio'], data['data_fim'], 'Por Iniciar')
             )
+            id_evento = cursor.fetchone()[0]
+            
+            # Insert all sessions for this event
+            sessoes = data.get('sessoes', [])
+            for sessao in sessoes:
+                cursor.execute(
+                    """INSERT INTO Sessao (data, tipo, hora_inicio, hora_fim, id_evento) 
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (sessao['data'], sessao['tipo'], sessao['hora_inicio'], sessao['hora_fim'], id_evento)
+                )
+            
             conn.commit()
             conn.close()
-            return jsonify({'success': True, 'message': 'Evento criado com sucesso!', 'redirect': '/gerir_eventos'})
+            return jsonify({
+                'success': True, 
+                'message': f'Evento criado com sucesso com {len(sessoes)} sessão(ões)!', 
+                'redirect': '/gerir_eventos'
+            })
         except Exception as e:
+            conn.rollback()
             conn.close()
             return jsonify({'success': False, 'message': str(e)}), 400
     
@@ -250,9 +268,9 @@ def gerir_eventos():
     
     pesquisa = request.args.get('nome_procurado')
     
-    # Only get events that are NOT finished (Por Iniciar, A Decorrer) and belong to current user
-    query = "SELECT id_evento, nome, tipo, data_inicio, data_fim, status FROM Evento WHERE status != 'Concluído' AND ID_utilizador_gestor_de_corrida = ?"
-    parametros = [session['id']]
+    # Only get events that are NOT finished (Por Iniciar, A Decorrer)
+    query = "SELECT id_evento, nome, tipo, data_inicio, data_fim, status FROM Evento WHERE status != 'Concluído'"
+    parametros = []
     
     if pesquisa:
         query += " AND (nome LIKE ? OR tipo LIKE ?)"
@@ -282,9 +300,9 @@ def eventos_passados():
     
     pesquisa = request.args.get('nome_procurado')
     
-    # Only get finished events that belong to current user
-    query = "SELECT id_evento, nome, tipo, data_inicio, data_fim, status FROM Evento WHERE status = 'Concluído' AND ID_utilizador_gestor_de_corrida = ?"
-    parametros = [session['id']]
+    # Only get finished events
+    query = "SELECT id_evento, nome, tipo, data_inicio, data_fim, status FROM Evento WHERE status = 'Concluído'"
+    parametros = []
     
     if pesquisa:
         query += " AND (nome LIKE ? OR tipo LIKE ?)"
@@ -309,10 +327,9 @@ def editar_evento(id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Only update if the event belongs to the current user
         cursor.execute(
-            "UPDATE Evento SET nome=?, tipo=?, data_inicio=?, data_fim=?, status=? WHERE id_evento=? AND ID_utilizador_gestor_de_corrida=?",
-            (data['nome'], data['tipo'], data['data_inicio'], data['data_fim'], data['status'], id, session['id'])
+            "UPDATE Evento SET nome=?, tipo=?, data_inicio=?, data_fim=?, status=? WHERE id_evento=?",
+            (data['nome'], data['tipo'], data['data_inicio'], data['data_fim'], data['status'], id)
         )
         conn.commit()
         conn.close()
@@ -330,12 +347,15 @@ def cancelar_evento(id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Instead of deleting, set status to 'Cancelado' - only if event belongs to current user
-        cursor.execute("UPDATE Evento SET status='Cancelado' WHERE id_evento=? AND ID_utilizador_gestor_de_corrida=?", (id, session['id']))
+        # First delete all sessions associated with this event
+        cursor.execute("DELETE FROM Sessao WHERE id_evento=?", (id,))
+        
+        # Then delete the event
+        cursor.execute("DELETE FROM Evento WHERE id_evento=?", (id,))
         conn.commit()
         conn.close()
         
-        return jsonify({'success': True, 'message': 'Evento cancelado com sucesso!'})
+        return jsonify({'success': True, 'message': 'Evento apagado com sucesso!'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
 
@@ -349,8 +369,7 @@ def alterar_status_evento(id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Only update if the event belongs to the current user
-        cursor.execute("UPDATE Evento SET status=? WHERE id_evento=? AND ID_utilizador_gestor_de_corrida=?", (data['status'], id, session['id']))
+        cursor.execute("UPDATE Evento SET status=? WHERE id_evento=?", (data['status'], id))
         conn.commit()
         conn.close()
         
@@ -358,6 +377,559 @@ def alterar_status_evento(id):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
 
+# API endpoint to get event details
+@app.route('/api/evento/<int:id>', methods=['GET'])
+def obter_evento(id):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT id_evento, nome, tipo, data_inicio, data_fim, status FROM Evento WHERE id_evento=?", (id,))
+        evento = cursor.fetchone()
+        conn.close()
+        
+        if evento:
+            return jsonify({
+                'success': True,
+                'evento': {
+                    'id': evento[0],
+                    'nome': evento[1],
+                    'tipo': evento[2],
+                    'data_inicio': str(evento[3]),
+                    'data_fim': str(evento[4]),
+                    'status': evento[5]
+                }
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Evento não encontrado'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# API endpoint to get sessions for an event
+@app.route('/api/evento/<int:id>/sessoes')
+def obter_sessoes_evento(id):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id_sessao, data, tipo, hora_inicio, hora_fim, status 
+            FROM Sessao 
+            WHERE id_evento=? 
+            ORDER BY data, hora_inicio
+        """, (id,))
+        sessoes = cursor.fetchall()
+        conn.close()
+        
+        sessoes_list = []
+        for s in sessoes:
+            sessoes_list.append({
+                'id': s[0],
+                'data': str(s[1]),
+                'tipo': s[2],
+                'hora_inicio': str(s[3])[:5] if s[3] else '',
+                'hora_fim': str(s[4])[:5] if s[4] else '',
+                'status': s[5] if s[5] else 'Por Iniciar'
+            })
+        
+        return jsonify({'success': True, 'sessoes': sessoes_list})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# API endpoint to update session status
+@app.route('/api/sessao/<int:id>/status', methods=['PUT'])
+def alterar_status_sessao(id):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("UPDATE Sessao SET status=? WHERE id_sessao=?", (data['status'], id))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Estado da sessão atualizado!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# API endpoint to create a new session
+@app.route('/api/sessao', methods=['POST'])
+def criar_sessao():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            """INSERT INTO Sessao (data, tipo, hora_inicio, hora_fim, id_evento) 
+               VALUES (?, ?, ?, ?, ?)""",
+            (data['data'], data['tipo'], data['hora_inicio'], data['hora_fim'], data['id_evento'])
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Sessão criada com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# API endpoint to update a session
+@app.route('/api/sessao/<int:id>', methods=['PUT'])
+def editar_sessao(id):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            """UPDATE Sessao SET data=?, tipo=?, hora_inicio=?, hora_fim=? 
+               WHERE id_sessao=?""",
+            (data['data'], data['tipo'], data['hora_inicio'], data['hora_fim'], id)
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Sessão atualizada com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# API endpoint to delete a session
+@app.route('/api/sessao/<int:id>', methods=['DELETE'])
+def remover_sessao(id):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM Sessao WHERE id_sessao=?", (id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Sessão removida com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# Route for team to view and register for events
+@app.route('/eventos_equipa')
+def eventos_equipa():
+    if 'loggedin' not in session:
+        return redirect('/login')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verify user is Diretor de Equipa
+    cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?', (session['id'],))
+    if cursor.fetchone() is None:
+        conn.close()
+        return redirect('/logout')
+    
+    # Get team
+    cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+    equipa = cursor.fetchone()
+    
+    if equipa is None:
+        conn.close()
+        return redirect('/criar_equipa')
+    
+    id_equipa = equipa[0]
+    
+    # Get all events that are not finished, with info about team registration
+    cursor.execute("""
+        SELECT e.id_evento, e.nome, e.tipo, e.data_inicio, e.data_fim, e.status,
+               CASE WHEN pe.id_equipa IS NOT NULL THEN 1 ELSE 0 END as inscrito,
+               (SELECT COUNT(*) FROM Sessao s WHERE s.id_evento = e.id_evento) as num_sessoes
+        FROM Evento e
+        LEFT JOIN Participa_Evento pe ON e.id_evento = pe.id_evento AND pe.id_equipa = ?
+        WHERE e.status IN ('Por Iniciar', 'A Decorrer')
+        ORDER BY e.data_inicio ASC
+    """, (id_equipa,))
+    
+    eventos_raw = cursor.fetchall()
+    conn.close()
+    
+    eventos = []
+    for e in eventos_raw:
+        eventos.append({
+            'id': e[0],
+            'nome': e[1],
+            'tipo': e[2],
+            'data_inicio': str(e[3]),
+            'data_fim': str(e[4]),
+            'status': e[5],
+            'inscrito': e[6] == 1,
+            'num_sessoes': e[7]
+        })
+    
+    return render_template('eventos_equipa.html', equipa=equipa, eventos=eventos)
+
+# Route for team to view events they are participating in
+@app.route('/eventos_atuais')
+def eventos_atuais():
+    if 'loggedin' not in session:
+        return redirect('/login')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verify user is Diretor de Equipa
+    cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?', (session['id'],))
+    if cursor.fetchone() is None:
+        conn.close()
+        return redirect('/logout')
+    
+    # Get team
+    cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+    equipa = cursor.fetchone()
+    
+    if equipa is None:
+        conn.close()
+        return redirect('/criar_equipa')
+    
+    id_equipa = equipa[0]
+    
+    # Get events the team is registered for
+    cursor.execute("""
+        SELECT e.id_evento, e.nome, e.tipo, e.data_inicio, e.data_fim, e.status
+        FROM Evento e
+        INNER JOIN Participa_Evento pe ON e.id_evento = pe.id_evento
+        WHERE pe.id_equipa = ? AND e.status IN ('Por Iniciar', 'A Decorrer')
+        ORDER BY e.data_inicio ASC
+    """, (id_equipa,))
+    
+    eventos_raw = cursor.fetchall()
+    conn.close()
+    
+    eventos = []
+    for e in eventos_raw:
+        eventos.append({
+            'id': e[0],
+            'nome': e[1],
+            'tipo': e[2],
+            'data_inicio': str(e[3]),
+            'data_fim': str(e[4]),
+            'status': e[5]
+        })
+    
+    return render_template('eventos_atuais.html', equipa=equipa, eventos=eventos)
+
+# API endpoint to register team for event
+@app.route('/api/inscricao', methods=['POST'])
+def inscrever_evento():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get team
+        cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+        equipa = cursor.fetchone()
+        
+        if equipa is None:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
+        
+        cursor.execute(
+            "INSERT INTO Participa_Evento (id_equipa, id_evento) VALUES (?, ?)",
+            (equipa[0], data['id_evento'])
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Inscrição efetuada com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# API endpoint to cancel team registration for event
+@app.route('/api/inscricao/<int:id_evento>', methods=['DELETE'])
+def cancelar_inscricao(id_evento):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get team
+        cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+        equipa = cursor.fetchone()
+        
+        if equipa is None:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
+        
+        cursor.execute(
+            "DELETE FROM Participa_Evento WHERE id_equipa=? AND id_evento=?",
+            (equipa[0], id_evento)
+        )
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Inscrição cancelada com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# Route for session registration page
+@app.route('/inscricao_sessao')
+def inscricao_sessao():
+    if 'loggedin' not in session:
+        return redirect('/login')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verify user is Diretor de Equipa
+    cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?', (session['id'],))
+    if cursor.fetchone() is None:
+        conn.close()
+        return redirect('/logout')
+    
+    # Get team
+    cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+    equipa = cursor.fetchone()
+    
+    if equipa is None:
+        conn.close()
+        return redirect('/criar_equipa')
+    
+    id_equipa = equipa[0]
+    
+    # Get events the team is registered for ('Por Iniciar' or 'A Decorrer')
+    cursor.execute("""
+        SELECT e.id_evento, e.nome, e.tipo, e.data_inicio, e.data_fim, e.status
+        FROM Evento e
+        INNER JOIN Participa_Evento pe ON e.id_evento = pe.id_evento
+        WHERE pe.id_equipa = ? AND e.status IN ('Por Iniciar', 'A Decorrer')
+        ORDER BY e.data_inicio ASC
+    """, (id_equipa,))
+    
+    eventos_raw = cursor.fetchall()
+    
+    eventos = []
+    for e in eventos_raw:
+        eventos.append({
+            'id': e[0],
+            'nome': e[1],
+            'tipo': e[2],
+            'data_inicio': str(e[3]),
+            'data_fim': str(e[4]),
+            'status': e[5]
+        })
+    
+    # Get team's pilots
+    cursor.execute('SELECT numero_licenca, nome FROM Piloto WHERE id_equipa=?', (id_equipa,))
+    pilotos = cursor.fetchall()
+    
+    # Get team's cars
+    cursor.execute('SELECT VIN, modelo, marca FROM Carro WHERE id_equipa=?', (id_equipa,))
+    carros = cursor.fetchall()
+    
+    conn.close()
+    
+    return render_template('inscricao_sessao.html', equipa=equipa, eventos=eventos, pilotos=pilotos, carros=carros)
+
+# API endpoint to get sessions with inscriptions for an event
+@app.route('/api/evento/<int:id>/sessoes_inscricao')
+def obter_sessoes_inscricao(id):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get team
+        cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+        equipa = cursor.fetchone()
+        
+        if equipa is None:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
+        
+        id_equipa = equipa[0]
+        
+        # Get sessions for this event with status
+        cursor.execute("""
+            SELECT id_sessao, data, tipo, hora_inicio, hora_fim, status 
+            FROM Sessao 
+            WHERE id_evento=? 
+            ORDER BY data, hora_inicio
+        """, (id,))
+        sessoes = cursor.fetchall()
+        
+        sessoes_list = []
+        previous_completed = True  # First session can always be registered
+        
+        for s in sessoes:
+            # Get inscriptions for this session (only from this team)
+            cursor.execute("""
+                SELECT ps.numero_licenca, ps.VIN_carro, p.nome, c.marca, c.modelo
+                FROM Participa_Sessao ps
+                INNER JOIN Piloto p ON ps.numero_licenca = p.numero_licenca
+                INNER JOIN Carro c ON ps.VIN_carro = c.VIN
+                WHERE ps.id_sessao = ? AND p.id_equipa = ?
+            """, (s[0], id_equipa))
+            inscricoes = cursor.fetchall()
+            
+            inscricoes_list = []
+            for insc in inscricoes:
+                inscricoes_list.append({
+                    'piloto_licenca': insc[0],
+                    'carro_vin': insc[1],
+                    'piloto_nome': insc[2],
+                    'carro_marca': insc[3],
+                    'carro_modelo': insc[4]
+                })
+            
+            sessao_status = s[5] if s[5] else 'Por Iniciar'
+            
+            # Can only register if previous session is completed (or this is the first session)
+            pode_inscrever = previous_completed and sessao_status != 'Concluída'
+            
+            sessoes_list.append({
+                'id': s[0],
+                'data': str(s[1]),
+                'tipo': s[2],
+                'hora_inicio': str(s[3])[:5] if s[3] else '',
+                'hora_fim': str(s[4])[:5] if s[4] else '',
+                'status': sessao_status,
+                'pode_inscrever': pode_inscrever,
+                'inscricoes': inscricoes_list
+            })
+            
+            # Update for next iteration: previous is completed only if this session is completed
+            previous_completed = (sessao_status == 'Concluída')
+        
+        conn.close()
+        return jsonify({'success': True, 'sessoes': sessoes_list})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# API endpoint to create session participation
+@app.route('/api/participacao_sessao', methods=['POST'])
+def criar_participacao_sessao():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if pilot is already registered in this session
+        cursor.execute("""
+            SELECT * FROM Participa_Sessao 
+            WHERE id_sessao=? AND numero_licenca=?
+        """, (data['id_sessao'], data['numero_licenca']))
+        if cursor.fetchone() is not None:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Este piloto já está inscrito nesta sessão!'}), 400
+        
+        # Check if car is already registered in this session
+        cursor.execute("""
+            SELECT * FROM Participa_Sessao 
+            WHERE id_sessao=? AND VIN_carro=?
+        """, (data['id_sessao'], data['VIN_carro']))
+        if cursor.fetchone() is not None:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Este carro já está inscrito nesta sessão!'}), 400
+        
+        cursor.execute("""
+            INSERT INTO Participa_Sessao (id_sessao, numero_licenca, VIN_carro, combustivel_inicial, pressao_pneus, configuracao_aerodinamica)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            data['id_sessao'],
+            data['numero_licenca'],
+            data['VIN_carro'],
+            data['combustivel_inicial'],
+            data['pressao_pneus'],
+            data['configuracao_aerodinamica']
+        ))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Inscrição na sessão efetuada com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# API endpoint to delete session participation
+@app.route('/api/participacao_sessao', methods=['DELETE'])
+def remover_participacao_sessao():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            DELETE FROM Participa_Sessao 
+            WHERE id_sessao=? AND numero_licenca=? AND VIN_carro=?
+        """, (data['id_sessao'], data['numero_licenca'], data['VIN_carro']))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Inscrição removida com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/criar_equipa', methods=['GET', 'POST'])
+def criar_equipa():
+    if 'loggedin' not in session:
+        return redirect('/login')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verify user is Diretor de Equipa
+    cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?', (session['id'],))
+    if cursor.fetchone() is None:
+        conn.close()
+        return redirect('/logout')
+    
+    # Check if director already has a team
+    cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
+    if cursor.fetchone() is not None:
+        conn.close()
+        return redirect('/welcomeDE')
+    
+    if request.method == 'GET':
+        conn.close()
+        return render_template('criar_equipa.html')
+    
+    # POST - Create team
+    try:
+        data = request.get_json()
+        cursor.execute(
+            "INSERT INTO Equipa (nome, pais, ID_utilizador_diretor_de_equipa) VALUES (?, ?, ?)",
+            (data['nome'], data['pais'], session['id'])
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Equipa criada com sucesso!', 'redirect': '/welcomeDE'})
+    except Exception as e:
+        conn.close()
+        return jsonify({'success': False, 'message': str(e)}), 400
 
 @app.route('/welcomeDE')
 def welcomeDE():
@@ -581,7 +1153,210 @@ def welcomeTP():
         conn.close()
         return redirect('/logout')
     conn.close()
-    return render_template('WelcomeTP.html')
+    return render_template('WelcomeTP.html', username=session.get('username', 'Técnico'))
+
+@app.route('/registar_voltas')
+def registar_voltas():
+    if 'loggedin' not in session:
+        return redirect('/login')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verify user is Tecnico de Pista
+    cursor.execute('SELECT * FROM Tecnico_de_Pista WHERE id_utilizador=?', (session['id'],))
+    if cursor.fetchone() is None:
+        conn.close()
+        return redirect('/logout')
+    
+    # Get sessions from active events (A Decorrer)
+    cursor.execute("""
+        SELECT s.id_sessao, s.data, s.tipo, s.hora_inicio, s.hora_fim, s.status, e.nome as evento_nome
+        FROM Sessao s
+        INNER JOIN Evento e ON s.id_evento = e.id_evento
+        WHERE e.status = 'A Decorrer' AND s.status IN ('Por Iniciar', 'A Decorrer')
+        ORDER BY s.data, s.hora_inicio
+    """)
+    
+    sessoes_raw = cursor.fetchall()
+    conn.close()
+    
+    sessoes = []
+    for s in sessoes_raw:
+        sessoes.append({
+            'id': s[0],
+            'data': str(s[1]),
+            'tipo': s[2],
+            'hora_inicio': str(s[3])[:5] if s[3] else '',
+            'hora_fim': str(s[4])[:5] if s[4] else '',
+            'status': s[5] if s[5] else 'Por Iniciar',
+            'evento_nome': s[6]
+        })
+    
+    return render_template('registar_voltas.html', sessoes=sessoes)
+
+# API endpoint to get participants of a session
+@app.route('/api/sessao/<int:id>/participantes')
+def obter_participantes_sessao(id):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get participants with pilot and car info, including tire pressure from Participa_Sessao
+        cursor.execute("""
+            SELECT ps.numero_licenca, ps.VIN_carro, p.nome as piloto_nome, c.marca, c.modelo,
+                   (SELECT COUNT(*) FROM Volta v WHERE v.id_sessao=ps.id_sessao AND v.numero_licenca=ps.numero_licenca AND v.carro_VIN=ps.VIN_carro) as voltas_count,
+                   ps.pressao_pneus
+            FROM Participa_Sessao ps
+            INNER JOIN Piloto p ON ps.numero_licenca = p.numero_licenca
+            INNER JOIN Carro c ON ps.VIN_carro = c.VIN
+            WHERE ps.id_sessao = ?
+        """, (id,))
+        
+        participantes = cursor.fetchall()
+        conn.close()
+        
+        participantes_list = []
+        for p in participantes:
+            participantes_list.append({
+                'piloto_licenca': p[0],
+                'carro_vin': p[1],
+                'piloto_nome': p[2],
+                'carro_marca': p[3],
+                'carro_modelo': p[4],
+                'voltas_count': p[5],
+                'pressao_pneus': p[6] if p[6] else 28
+            })
+        
+        return jsonify({'success': True, 'participantes': participantes_list})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# API endpoint to register a lap
+@app.route('/api/volta', methods=['POST'])
+def registar_volta():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if lap number already exists for this car in this session
+        cursor.execute("""
+            SELECT * FROM Volta 
+            WHERE id_sessao=? AND carro_VIN=? AND numero_volta=?
+        """, (data['id_sessao'], data['carro_VIN'], data['numero_volta']))
+        if cursor.fetchone() is not None:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Já existe uma volta com este número para este carro nesta sessão!'}), 400
+        
+        # Get tire pressure from Participa_Sessao
+        cursor.execute("""
+            SELECT pressao_pneus FROM Participa_Sessao 
+            WHERE id_sessao=? AND VIN_carro=?
+        """, (data['id_sessao'], data['carro_VIN']))
+        participa = cursor.fetchone()
+        pressao_pneus = participa[0] if participa and participa[0] else 28
+        
+        # Use stored procedure to register lap (converts time format automatically)
+        cursor.execute("""
+            EXEC sp_RegistarVolta ?, ?, ?, ?, ?, ?, ?
+        """, (
+            data['id_sessao'],
+            data['numero_licenca'],
+            data['carro_VIN'],
+            data['tempo'],  # Format: mm:ss:ms
+            data['numero_volta'],
+            pressao_pneus,
+            session['id']
+        ))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Volta registada com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+
+
+@app.route('/condicoes_pista')
+def condicoes_pista():
+    if 'loggedin' not in session:
+        return redirect('/login')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verify user is Tecnico de Pista
+    cursor.execute('SELECT * FROM Tecnico_de_Pista WHERE id_utilizador=?', (session['id'],))
+    if cursor.fetchone() is None:
+        conn.close()
+        return redirect('/logout')
+    
+    # Get active sessions (from events that are 'A Decorrer')
+    cursor.execute("""
+        SELECT s.id_sessao, s.data, s.tipo, s.hora_inicio, s.hora_fim,
+               s.temperatura_asfalto, s.temperatura_ar, s.humidade, s.precipitação,
+               e.nome as evento_nome
+        FROM Sessao s
+        INNER JOIN Evento e ON s.id_evento = e.id_evento
+        WHERE e.status = 'A Decorrer'
+        ORDER BY s.data, s.hora_inicio
+    """)
+    
+    sessoes_raw = cursor.fetchall()
+    conn.close()
+    
+    sessoes = []
+    for s in sessoes_raw:
+        sessoes.append({
+            'id': s[0],
+            'data': str(s[1]),
+            'tipo': s[2],
+            'hora_inicio': str(s[3])[:5] if s[3] else '',
+            'hora_fim': str(s[4])[:5] if s[4] else '',
+            'temperatura_asfalto': s[5],
+            'temperatura_ar': s[6],
+            'humidade': s[7],
+            'precipitacao': s[8],
+            'evento_nome': s[9]
+        })
+    
+    return render_template('condicoes_pista.html', sessoes=sessoes)
+
+@app.route('/api/sessao/<int:id>/condicoes', methods=['PUT'])
+def atualizar_condicoes_sessao(id):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE Sessao 
+            SET temperatura_asfalto=?, temperatura_ar=?, humidade=?, precipitação=?
+            WHERE id_sessao=?
+        """, (
+            data.get('temperatura_asfalto'),
+            data.get('temperatura_ar'),
+            data.get('humidade'),
+            data.get('precipitacao'),
+            id
+        ))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Condições atualizadas com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
 
 # Define a rota para a página de login
 @app.route('/login', methods=['GET', 'POST'])

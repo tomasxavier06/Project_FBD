@@ -53,50 +53,50 @@
             </form>
         </div>
 
-        <div class="table-container">
+        <div class="events-list">
             {% if eventos %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nome</th>
-                        <th>Tipo</th>
-                        <th>Data Início</th>
-                        <th>Data Fim</th>
-                        <th>Estado</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for evento in eventos %}
-                    <tr>
-                        <td style="font-weight: bold;">{{ evento[1] }}</td>
-                        <td>{{ evento[2] }}</td>
-                        <td>{{ evento[3] }}</td>
-                        <td>{{ evento[4] }}</td>
-                        <td>
-                            <span class="status-badge status-{{ evento[5]|lower|replace(' ', '-') }}">
-                                {{ evento[5] }}
-                            </span>
-                        </td>
-                        <td class="actions">
-                            <button class="btn btn-sm btn-edit" data-id="{{ evento[0] }}" data-nome="{{ evento[1] }}"
-                                data-tipo="{{ evento[2] }}" data-inicio="{{ evento[3] }}" data-fim="{{ evento[4] }}"
-                                data-status="{{ evento[5] }}" onclick="editarEvento(this)">
-                                <i class="fa-solid fa-pen"></i> Editar
-                            </button>
-                            <button class="btn btn-sm btn-status" data-id="{{ evento[0] }}"
-                                data-status="{{ evento[5] }}" onclick="alterarStatus(this)">
-                                <i class="fa-solid fa-rotate"></i> Estado
-                            </button>
-                            <button class="btn btn-sm btn-delete" data-id="{{ evento[0] }}"
-                                onclick="cancelarEvento(this)">
-                                <i class="fa-solid fa-ban"></i> Cancelar
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            {% for evento in eventos %}
+            <div class="event-card" id="evento-{{ evento[0] }}">
+                <div class="event-header">
+                    <div class="event-info">
+                        <h2>{{ evento[1] }}</h2>
+                        <div class="event-meta">
+                            <span class="event-type"><i class="fa-solid fa-tag"></i> {{ evento[2] }}</span>
+                            <span class="event-dates"><i class="fa-solid fa-calendar"></i> {{ evento[3] }} - {{
+                                evento[4] }}</span>
+                            <span class="status-badge status-{{ evento[5]|lower|replace(' ', '-') }}">{{ evento[5]
+                                }}</span>
+                        </div>
+                    </div>
+                    <div class="event-actions">
+                        <button class="btn btn-sm btn-edit" onclick="editarEvento({{ evento[0] }})">
+                            <i class="fa-solid fa-pen"></i> Editar
+                        </button>
+                        <button class="btn btn-sm btn-status"
+                            onclick="alterarStatus({{ evento[0] }}, '{{ evento[5] }}')">
+                            <i class="fa-solid fa-rotate"></i> Estado
+                        </button>
+                        <button class="btn btn-sm btn-delete" onclick="cancelarEvento({{ evento[0] }})">
+                            <i class="fa-solid fa-ban"></i> Cancelar
+                        </button>
+                        <button class="btn btn-sm btn-expand" onclick="toggleSessoes({{ evento[0] }})">
+                            <i class="fa-solid fa-chevron-down" id="icon-{{ evento[0] }}"></i> Sessões
+                        </button>
+                    </div>
+                </div>
+                <div class="sessions-container" id="sessoes-{{ evento[0] }}" style="display: none;">
+                    <div class="sessions-header">
+                        <h3><i class="fa-solid fa-flag-checkered"></i> Sessões do Evento</h3>
+                        <button class="btn btn-add-session" onclick="adicionarSessao({{ evento[0] }})">
+                            <i class="fa-solid fa-plus"></i> Nova Sessão
+                        </button>
+                    </div>
+                    <div class="sessions-list" id="lista-sessoes-{{ evento[0] }}">
+                        <div class="loading"><i class="fa-solid fa-spinner fa-spin"></i> A carregar sessões...</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
             {% else %}
             <div class="empty-state">
                 <i class="fa-solid fa-calendar-xmark"></i>
@@ -112,7 +112,7 @@
     <!-- Modal Editar Evento -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
-            <h2 id="modalTitle">Editar Evento</h2>
+            <h2>Editar Evento</h2>
             <form id="eventoForm">
                 <input type="hidden" id="eventoId">
                 <div class="form-group">
@@ -123,9 +123,9 @@
                     <label for="tipo">Tipo de Evento</label>
                     <select id="tipo" name="tipo" required>
                         <option value="Corrida">Corrida</option>
-                        <option value="Treino Livre">Treino Livre</option>
-                        <option value="Qualificação">Qualificação</option>
-                        <option value="Teste Privado">Teste Privado</option>
+                        <option value="Treino">Treino</option>
+                        <option value="Endurance">Endurance</option>
+                        <option value="Festival">Festival</option>
                         <option value="Track Day">Track Day</option>
                     </select>
                 </div>
@@ -181,6 +181,50 @@
         </div>
     </div>
 
+    <!-- Modal Editar/Adicionar Sessão -->
+    <div class="modal-overlay" id="sessaoModalOverlay">
+        <div class="modal">
+            <h2 id="sessaoModalTitle">Nova Sessão</h2>
+            <form id="sessaoForm">
+                <input type="hidden" id="sessaoId">
+                <input type="hidden" id="sessaoEventoId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sessao_data">Data</label>
+                        <input type="date" id="sessao_data" name="sessao_data" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="sessao_tipo">Tipo de Sessão</label>
+                        <select id="sessao_tipo" name="sessao_tipo" required>
+                            <option value="">Selecione o tipo</option>
+                            <option value="Treino Livre 1">Treino Livre 1</option>
+                            <option value="Treino Livre 2">Treino Livre 2</option>
+                            <option value="Treino Livre 3">Treino Livre 3</option>
+                            <option value="Qualificação">Qualificação</option>
+                            <option value="Corrida">Corrida</option>
+                            <option value="Warm-Up">Warm-Up</option>
+                            <option value="Teste">Teste</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sessao_hora_inicio">Hora de Início</label>
+                        <input type="time" id="sessao_hora_inicio" name="sessao_hora_inicio" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="sessao_hora_fim">Hora de Fim</label>
+                        <input type="time" id="sessao_hora_fim" name="sessao_hora_fim" required />
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="fecharSessaoModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="sessaoSubmitBtn">Adicionar Sessão</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <style>
         .search-container {
             margin-bottom: 20px;
@@ -228,6 +272,201 @@
 
         .search-container a:hover {
             color: #333;
+        }
+
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .event-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .event-info h2 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .event-meta {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .event-meta span {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .event-meta i {
+            margin-right: 5px;
+            color: #888;
+        }
+
+        .event-type {
+            background: #f5f5f5;
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+
+        .event-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-expand {
+            background: #f0f7ff;
+            color: #3b82f6;
+            border: 1px solid #d0e3ff;
+        }
+
+        .btn-expand:hover {
+            background: #e0efff;
+        }
+
+        .sessions-container {
+            background: #fafafa;
+            border-top: 1px solid #e0e0e0;
+            padding: 20px;
+        }
+
+        .sessions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .sessions-header h3 {
+            margin: 0;
+            font-size: 15px;
+            color: #555;
+        }
+
+        .sessions-header h3 i {
+            margin-right: 8px;
+            color: #3b82f6;
+        }
+
+        .btn-add-session {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-add-session:hover {
+            background: #059669;
+        }
+
+        .sessions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .session-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px 16px;
+        }
+
+        .session-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .session-info strong {
+            color: #333;
+            min-width: 120px;
+        }
+
+        .session-info span {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .session-info i {
+            margin-right: 5px;
+            color: #888;
+        }
+
+        .session-status-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .session-status-select {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            background: #fff;
+        }
+
+        .session-status-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .session-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .session-actions button {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .no-sessions {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+        }
+
+        .no-sessions i {
+            font-size: 30px;
+            margin-bottom: 10px;
+            color: #ccc;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #888;
         }
 
         .status-badge {
@@ -302,7 +541,8 @@
             font-weight: 500;
         }
 
-        .form-group select {
+        .form-group select,
+        .form-group input[type="time"] {
             width: 100%;
             padding: 10px 12px;
             border: 1px solid #ddd;
@@ -313,42 +553,228 @@
             cursor: pointer;
         }
 
-        .form-group select:focus {
+        .form-group select:focus,
+        .form-group input[type="time"]:focus {
             outline: none;
             border-color: #999;
             background: #fff;
         }
 
-        .table-container.scrollable {
-            overflow-x: auto;
+        @media (max-width: 768px) {
+            .event-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .event-actions {
+                width: 100%;
+            }
         }
     </style>
 
     <script>
-        function editarEvento(btn) {
-            const id = btn.dataset.id;
-            const nome = btn.dataset.nome;
-            const tipo = btn.dataset.tipo;
-            const inicio = btn.dataset.inicio;
-            const fim = btn.dataset.fim;
-            const status = btn.dataset.status;
+        let sessoesCarregadas = {};
 
-            document.getElementById('modalOverlay').classList.add('active');
-            document.getElementById('eventoId').value = id;
-            document.getElementById('nome').value = nome;
-            document.getElementById('tipo').value = tipo;
-            document.getElementById('data_inicio').value = inicio;
-            document.getElementById('data_fim').value = fim;
-            document.getElementById('status').value = status;
+        function toggleSessoes(eventoId) {
+            const container = document.getElementById('sessoes-' + eventoId);
+            const icon = document.getElementById('icon-' + eventoId);
+
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                icon.className = 'fa-solid fa-chevron-up';
+                if (!sessoesCarregadas[eventoId]) {
+                    carregarSessoes(eventoId);
+                }
+            } else {
+                container.style.display = 'none';
+                icon.className = 'fa-solid fa-chevron-down';
+            }
+        }
+
+        function carregarSessoes(eventoId) {
+            fetch('/api/evento/' + eventoId + '/sessoes')
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        sessoesCarregadas[eventoId] = true;
+                        renderizarSessoes(eventoId, result.sessoes);
+                    } else {
+                        document.getElementById('lista-sessoes-' + eventoId).innerHTML =
+                            '<div class="no-sessions"><p>Erro ao carregar sessões</p></div>';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('lista-sessoes-' + eventoId).innerHTML =
+                        '<div class="no-sessions"><p>Erro ao carregar sessões</p></div>';
+                });
+        }
+
+        function renderizarSessoes(eventoId, sessoes) {
+            const container = document.getElementById('lista-sessoes-' + eventoId);
+
+            if (sessoes.length === 0) {
+                container.innerHTML = `
+                    <div class="no-sessions">
+                        <i class="fa-solid fa-stopwatch"></i>
+                        <p>Nenhuma sessão encontrada</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            sessoes.forEach(sessao => {
+                const statusClass = sessao.status.toLowerCase().replace(' ', '-');
+                html += `
+                    <div class="session-item" id="sessao-item-${sessao.id}">
+                        <div class="session-info">
+                            <strong>${sessao.tipo}</strong>
+                            <span><i class="fa-solid fa-calendar"></i> ${sessao.data}</span>
+                            <span><i class="fa-solid fa-clock"></i> ${sessao.hora_inicio} - ${sessao.hora_fim}</span>
+                            <span class="session-status-badge status-${statusClass}">${sessao.status}</span>
+                        </div>
+                        <div class="session-actions">
+                            <select class="session-status-select" onchange="alterarStatusSessao(${sessao.id}, this.value, ${eventoId})">
+                                <option value="Por Iniciar" ${sessao.status === 'Por Iniciar' ? 'selected' : ''}>Por Iniciar</option>
+                                <option value="A Decorrer" ${sessao.status === 'A Decorrer' ? 'selected' : ''}>A Decorrer</option>
+                                <option value="Concluída" ${sessao.status === 'Concluída' ? 'selected' : ''}>Concluída</option>
+                            </select>
+                            <button class="btn btn-sm btn-edit" onclick="editarSessao(${sessao.id}, ${eventoId}, '${sessao.data}', '${sessao.tipo}', '${sessao.hora_inicio}', '${sessao.hora_fim}')">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button class="btn btn-sm btn-delete" onclick="removerSessao(${sessao.id}, ${eventoId})">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function alterarStatusSessao(sessaoId, novoStatus, eventoId) {
+            fetch('/api/sessao/' + sessaoId + '/status', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: novoStatus })
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        sessoesCarregadas[eventoId] = false;
+                        carregarSessoes(eventoId);
+                    } else {
+                        alert('Erro: ' + result.message);
+                    }
+                })
+                .catch(error => alert('Erro: ' + error));
+        }
+
+        function adicionarSessao(eventoId) {
+            document.getElementById('sessaoModalTitle').textContent = 'Nova Sessão';
+            document.getElementById('sessaoSubmitBtn').textContent = 'Adicionar Sessão';
+            document.getElementById('sessaoId').value = '';
+            document.getElementById('sessaoEventoId').value = eventoId;
+            document.getElementById('sessao_data').value = '';
+            document.getElementById('sessao_tipo').value = '';
+            document.getElementById('sessao_hora_inicio').value = '09:00';
+            document.getElementById('sessao_hora_fim').value = '10:30';
+            document.getElementById('sessaoModalOverlay').classList.add('active');
+        }
+
+        function editarSessao(id, eventoId, data, tipo, horaInicio, horaFim) {
+            document.getElementById('sessaoModalTitle').textContent = 'Editar Sessão';
+            document.getElementById('sessaoSubmitBtn').textContent = 'Guardar Alterações';
+            document.getElementById('sessaoId').value = id;
+            document.getElementById('sessaoEventoId').value = eventoId;
+            document.getElementById('sessao_data').value = data;
+            document.getElementById('sessao_tipo').value = tipo;
+            document.getElementById('sessao_hora_inicio').value = horaInicio;
+            document.getElementById('sessao_hora_fim').value = horaFim;
+            document.getElementById('sessaoModalOverlay').classList.add('active');
+        }
+
+        function fecharSessaoModal() {
+            document.getElementById('sessaoModalOverlay').classList.remove('active');
+        }
+
+        function removerSessao(sessaoId, eventoId) {
+            if (confirm('Tem a certeza que deseja remover esta sessão?')) {
+                fetch('/api/sessao/' + sessaoId, {
+                    method: 'DELETE'
+                })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            sessoesCarregadas[eventoId] = false;
+                            carregarSessoes(eventoId);
+                        } else {
+                            alert('Erro: ' + result.message);
+                        }
+                    })
+                    .catch(error => alert('Erro: ' + error));
+            }
+        }
+
+        document.getElementById('sessaoForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const sessaoId = document.getElementById('sessaoId').value;
+            const eventoId = document.getElementById('sessaoEventoId').value;
+            const data = {
+                data: document.getElementById('sessao_data').value,
+                tipo: document.getElementById('sessao_tipo').value,
+                hora_inicio: document.getElementById('sessao_hora_inicio').value,
+                hora_fim: document.getElementById('sessao_hora_fim').value,
+                id_evento: eventoId
+            };
+
+            const url = sessaoId ? '/api/sessao/' + sessaoId : '/api/sessao';
+            const method = sessaoId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        fecharSessaoModal();
+                        sessoesCarregadas[eventoId] = false;
+                        carregarSessoes(eventoId);
+                    } else {
+                        alert('Erro: ' + result.message);
+                    }
+                })
+                .catch(error => alert('Erro: ' + error));
+        });
+
+        function editarEvento(eventoId) {
+            fetch('/api/evento/' + eventoId)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        const evento = result.evento;
+                        document.getElementById('modalOverlay').classList.add('active');
+                        document.getElementById('eventoId').value = evento.id;
+                        document.getElementById('nome').value = evento.nome;
+                        document.getElementById('tipo').value = evento.tipo;
+                        document.getElementById('data_inicio').value = evento.data_inicio;
+                        document.getElementById('data_fim').value = evento.data_fim;
+                        document.getElementById('status').value = evento.status;
+                    }
+                })
+                .catch(error => alert('Erro: ' + error));
         }
 
         function fecharModal() {
             document.getElementById('modalOverlay').classList.remove('active');
         }
 
-        function alterarStatus(btn) {
-            const id = btn.dataset.id;
-            document.getElementById('statusEventoId').value = id;
+        function alterarStatus(eventoId, statusAtual) {
+            document.getElementById('statusEventoId').value = eventoId;
             document.getElementById('statusModalOverlay').classList.add('active');
         }
 
@@ -376,10 +802,9 @@
                 .catch(error => alert('Erro: ' + error));
         }
 
-        function cancelarEvento(btn) {
-            const id = btn.dataset.id;
+        function cancelarEvento(eventoId) {
             if (confirm('Tem a certeza que deseja cancelar este evento? Esta ação não pode ser revertida.')) {
-                fetch('/api/evento/' + id, {
+                fetch('/api/evento/' + eventoId, {
                     method: 'DELETE'
                 })
                     .then(response => response.json())
@@ -428,6 +853,10 @@
 
         document.getElementById('statusModalOverlay').addEventListener('click', function (e) {
             if (e.target === this) fecharStatusModal();
+        });
+
+        document.getElementById('sessaoModalOverlay').addEventListener('click', function (e) {
+            if (e.target === this) fecharSessaoModal();
         });
     </script>
 </body>

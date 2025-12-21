@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="pt">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Registar Voltas - Estoril Track Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/sidebar.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/management.css">
+</head>
+
+<body>
+    <aside class="sidebar" aria-label="Barra lateral">
+        <nav>
+            <button class="sidebar-btn" onclick="window.location.href='/welcomeTP'">
+                <i class="fa-solid fa-house"></i>
+                <span>Página Inicial</span>
+            </button>
+        </nav>
+        <div class="sidebar-bottom">
+            <button class="sidebar-btn settings" onclick="window.location.href='/settings'">
+                <i class="fa-solid fa-gear"></i>
+                <span>Definições</span>
+            </button>
+            <button class="sidebar-btn logout" onclick="window.location.href='/logout'">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Terminar Sessão</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h1><i class="fa-solid fa-stopwatch"></i> Registar Voltas</h1>
+                <p class="team-name">Registar tempos de volta dos pilotos em sessões ativas</p>
+            </div>
+            <a href="/welcomeTP" class="btn btn-cancel">
+                <i class="fa-solid fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+
+        <div class="sessions-list">
+            {% if sessoes %}
+            {% for sessao in sessoes %}
+            <div class="session-card" id="sessao-{{ sessao.id }}">
+                <div class="session-header">
+                    <div class="session-info-main">
+                        <h2>{{ sessao.evento_nome }}</h2>
+                        <div class="session-meta">
+                            <span class="session-type"><i class="fa-solid fa-flag-checkered"></i> {{ sessao.tipo
+                                }}</span>
+                            <span><i class="fa-solid fa-calendar"></i> {{ sessao.data }}</span>
+                            <span><i class="fa-solid fa-clock"></i> {{ sessao.hora_inicio }} - {{ sessao.hora_fim
+                                }}</span>
+                            <span class="status-badge status-{{ sessao.status|lower|replace(' ', '-') }}">{{
+                                sessao.status }}</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-expand" onclick="toggleParticipantes({{ sessao.id }})">
+                        <i class="fa-solid fa-chevron-down" id="icon-{{ sessao.id }}"></i> Ver Participantes
+                    </button>
+                </div>
+
+                <div class="participants-container" id="participantes-{{ sessao.id }}" style="display: none;">
+                    <div class="participants-list" id="lista-participantes-{{ sessao.id }}">
+                        <div class="loading"><i class="fa-solid fa-spinner fa-spin"></i> A carregar participantes...
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-stopwatch"></i>
+                <p>Não há sessões ativas no momento</p>
+                <p class="sub-text">As sessões aparecerão aqui quando estiverem a decorrer</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal Registar Volta -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal modal-large">
+            <h2 id="modalTitle">Registar Volta</h2>
+            <div class="participant-info" id="participantInfo"></div>
+            <form id="voltaForm">
+                <input type="hidden" id="sessaoId">
+                <input type="hidden" id="pilotoLicenca">
+                <input type="hidden" id="carroVin">
+
+                <div class="form-row-two">
+                    <div class="form-group">
+                        <label for="numeroVolta">Número da Volta</label>
+                        <input type="number" id="numeroVolta" name="numeroVolta" min="1" value="1"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="tempo">Tempo (mm:ss:ms)</label>
+                        <input type="text" id="tempo" name="tempo" placeholder="01:23:45"
+                            pattern="^[0-9]{2}:[0-9]{2}:[0-9]{2}$" title="Formato obrigatório: mm:ss:ms (ex: 01:23:45)"
+                            required />
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="fecharModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-check"></i> Registar Volta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .sessions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .session-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            gap: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .session-info-main h2 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .session-meta {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .session-meta span {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .session-meta i {
+            margin-right: 5px;
+            color: #888;
+        }
+
+        .session-type {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-por-iniciar {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .status-a-decorrer {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-concluída {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .btn-expand {
+            background: #f0f7ff;
+            color: #3b82f6;
+            border: 1px solid #d0e3ff;
+        }
+
+        .btn-expand:hover {
+            background: #e0efff;
+        }
+
+        .participants-container {
+            background: #fafafa;
+            padding: 20px;
+        }
+
+        .participants-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .participant-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px 20px;
+        }
+
+        .participant-details {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .participant-details strong {
+            font-size: 15px;
+            color: #333;
+        }
+
+        .participant-details span {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .participant-details i {
+            margin-right: 5px;
+            color: #888;
+        }
+
+        .participant-stats {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .lap-count {
+            background: #f0f0f0;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .lap-count strong {
+            color: #333;
+        }
+
+        .no-participants {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+        }
+
+        .no-participants i {
+            font-size: 30px;
+            margin-bottom: 10px;
+            color: #ccc;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+        }
+
+        .modal-large {
+            max-width: 550px;
+        }
+
+        .participant-info {
+            background: #f5f5f5;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .participant-info strong {
+            color: #333;
+        }
+
+        .participant-info span {
+            color: #666;
+            margin-left: 10px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .form-row-two {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .readonly-input {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .empty-state .sub-text {
+            color: #999;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .session-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .participant-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <script>
+        let participantesCarregados = {};
+
+        function toggleParticipantes(sessaoId) {
+            const container = document.getElementById('participantes-' + sessaoId);
+            const icon = document.getElementById('icon-' + sessaoId);
+
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                icon.className = 'fa-solid fa-chevron-up';
+                if (!participantesCarregados[sessaoId]) {
+                    carregarParticipantes(sessaoId);
+                }
+            } else {
+                container.style.display = 'none';
+                icon.className = 'fa-solid fa-chevron-down';
+            }
+        }
+
+        function carregarParticipantes(sessaoId) {
+            fetch('/api/sessao/' + sessaoId + '/participantes')
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        participantesCarregados[sessaoId] = true;
+                        renderizarParticipantes(sessaoId, result.participantes);
+                    } else {
+                        document.getElementById('lista-participantes-' + sessaoId).innerHTML =
+                            '<div class="no-participants"><p>Erro ao carregar participantes</p></div>';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('lista-participantes-' + sessaoId).innerHTML =
+                        '<div class="no-participants"><p>Erro ao carregar participantes</p></div>';
+                });
+        }
+
+        function renderizarParticipantes(sessaoId, participantes) {
+            const container = document.getElementById('lista-participantes-' + sessaoId);
+
+            if (participantes.length === 0) {
+                container.innerHTML = `
+                    <div class="no-participants">
+                        <i class="fa-solid fa-users-slash"></i>
+                        <p>Nenhum participante inscrito nesta sessão</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            participantes.forEach(p => {
+                html += `
+                    <div class="participant-card">
+                        <div class="participant-details">
+                            <strong>${p.piloto_nome}</strong>
+                            <span><i class="fa-solid fa-car"></i> ${p.carro_marca} ${p.carro_modelo} (${p.carro_vin})</span>
+                            <span><i class="fa-solid fa-gauge"></i> Pressão: ${p.pressao_pneus} PSI</span>
+                        </div>
+                        <div class="participant-stats">
+                            <span class="lap-count"><strong>${p.voltas_count}</strong> volta(s)</span>
+                            <button class="btn btn-sm btn-primary" onclick="abrirModal(${sessaoId}, ${p.piloto_licenca}, '${p.carro_vin}', '${p.piloto_nome}', '${p.carro_marca} ${p.carro_modelo}', ${p.voltas_count})">
+                                <i class="fa-solid fa-plus"></i> Registar Volta
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function abrirModal(sessaoId, pilotoLicenca, carroVin, pilotoNome, carroInfo, voltasCount) {
+            document.getElementById('sessaoId').value = sessaoId;
+            document.getElementById('pilotoLicenca').value = pilotoLicenca;
+            document.getElementById('carroVin').value = carroVin;
+            document.getElementById('participantInfo').innerHTML = `<strong>${pilotoNome}</strong> <span>- ${carroInfo}</span>`;
+            document.getElementById('numeroVolta').value = voltasCount + 1;
+            document.getElementById('tempo').value = '';
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        document.getElementById('voltaForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const sessaoId = document.getElementById('sessaoId').value;
+            const data = {
+                id_sessao: sessaoId,
+                numero_licenca: document.getElementById('pilotoLicenca').value,
+                carro_VIN: document.getElementById('carroVin').value,
+                numero_volta: document.getElementById('numeroVolta').value,
+                tempo: document.getElementById('tempo').value
+            };
+
+            fetch('/api/volta', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        fecharModal();
+                        participantesCarregados[sessaoId] = false;
+                        carregarParticipantes(sessaoId);
+                    } else {
+                        alert('Erro: ' + result.message);
+                    }
+                })
+                .catch(error => alert('Erro: ' + error));
+        });
+
+        // Close modal on overlay click
+        document.getElementById('modalOverlay').addEventListener('click', function (e) {
+            if (e.target === this) fecharModal();
+        });
+    </script>
+</body>
+
+</html>

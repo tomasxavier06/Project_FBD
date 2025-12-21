@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="pt">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Inscrever nas Sessões - Estoril Track Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/sidebar.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/management.css">
+</head>
+
+<body>
+    <aside class="sidebar" aria-label="Barra lateral">
+        <nav>
+            <button class="sidebar-btn" onclick="window.location.href='/welcomeDE'">
+                <i class="fa-solid fa-house"></i>
+                <span>Página Inicial</span>
+            </button>
+        </nav>
+        <div class="sidebar-bottom">
+            <button class="sidebar-btn settings" onclick="window.location.href='/settings'">
+                <i class="fa-solid fa-gear"></i>
+                <span>Definições</span>
+            </button>
+            <button class="sidebar-btn logout" onclick="window.location.href='/logout'">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Terminar Sessão</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h1><i class="fa-solid fa-user-plus"></i> Inscrever nas Sessões</h1>
+                <p class="team-name">{{ equipa[1] }} - Inscrever pilotos e carros nas sessões dos eventos</p>
+            </div>
+            <a href="/welcomeDE" class="btn btn-cancel">
+                <i class="fa-solid fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+
+        {% if eventos %}
+        <div class="events-list">
+            {% for evento in eventos %}
+            <div class="event-card" id="evento-{{ evento.id }}">
+                <div class="event-header">
+                    <div class="event-info">
+                        <h2>{{ evento.nome }}</h2>
+                        <div class="event-meta">
+                            <span class="event-type"><i class="fa-solid fa-tag"></i> {{ evento.tipo }}</span>
+                            <span class="event-dates"><i class="fa-solid fa-calendar"></i> {{ evento.data_inicio }} - {{
+                                evento.data_fim }}</span>
+                            <span class="status-badge status-{{ evento.status|lower|replace(' ', '-') }}">{{
+                                evento.status }}</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-expand" onclick="toggleSessoes({{ evento.id }})">
+                        <i class="fa-solid fa-chevron-down" id="icon-{{ evento.id }}"></i> Ver Sessões
+                    </button>
+                </div>
+                <div class="sessions-container" id="sessoes-{{ evento.id }}" style="display: none;">
+                    <div class="sessions-list" id="lista-sessoes-{{ evento.id }}">
+                        <div class="loading"><i class="fa-solid fa-spinner fa-spin"></i> A carregar sessões...</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fa-solid fa-calendar-xmark"></i>
+            <p>Não está inscrito em nenhum evento</p>
+            <a href="/eventos_equipa" class="btn btn-primary" style="margin-top: 15px;">
+                <i class="fa-solid fa-plus"></i> Inscrever-se em Eventos
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Modal Inscrição de Sessão -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal modal-large">
+            <h2 id="modalTitle">Inscrever na Sessão</h2>
+            <form id="inscricaoForm">
+                <input type="hidden" id="sessaoId">
+
+                <div class="form-section">
+                    <h3><i class="fa-solid fa-user"></i> Piloto</h3>
+                    <div class="form-group">
+                        <select id="piloto" name="piloto" required>
+                            <option value="">Selecione um piloto</option>
+                            {% for piloto in pilotos %}
+                            <option value="{{ piloto[0] }}">{{ piloto[1] }} (Licença: {{ piloto[0] }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3><i class="fa-solid fa-car"></i> Carro</h3>
+                    <div class="form-group">
+                        <select id="carro" name="carro" required>
+                            <option value="">Selecione um carro</option>
+                            {% for carro in carros %}
+                            <option value="{{ carro[0] }}">{{ carro[2] }} {{ carro[1] }} ({{ carro[0] }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3><i class="fa-solid fa-sliders"></i> Configuração</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="combustivel">Combustível Inicial (L)</label>
+                            <input type="number" id="combustivel" name="combustivel" min="0" max="150" value="50"
+                                required />
+                        </div>
+                        <div class="form-group">
+                            <label for="pressao">Pressão Pneus (PSI)</label>
+                            <input type="number" id="pressao" name="pressao" min="15" max="40" step="0.1" value="28"
+                                required />
+                        </div>
+                        <div class="form-group">
+                            <label for="aerodinamica">Carga Aerodinâmica (1-5)</label>
+                            <input type="number" id="aerodinamica" name="aerodinamica" min="1" max="5" value="3"
+                                required />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="fecharModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-check"></i> Confirmar Inscrição
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .event-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .event-info h2 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .event-meta {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .event-meta span {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .event-meta i {
+            margin-right: 5px;
+            color: #888;
+        }
+
+        .event-type {
+            background: #f5f5f5;
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+
+        .btn-expand {
+            background: #f0f7ff;
+            color: #3b82f6;
+            border: 1px solid #d0e3ff;
+        }
+
+        .btn-expand:hover {
+            background: #e0efff;
+        }
+
+        .sessions-container {
+            background: #fafafa;
+            border-top: 1px solid #e0e0e0;
+            padding: 20px;
+        }
+
+        .sessions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .session-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px 20px;
+        }
+
+        .session-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .session-info strong {
+            font-size: 15px;
+            color: #333;
+        }
+
+        .session-details {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .session-details i {
+            margin-right: 4px;
+            color: #888;
+        }
+
+        .session-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .inscricoes-count {
+            font-size: 12px;
+            color: #888;
+            padding: 4px 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        .inscricao-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: #e8f5e9;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .inscricao-item i {
+            color: #2e7d32;
+        }
+
+        .inscricao-item .remove-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: #d32f2f;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .inscricao-item .remove-btn:hover {
+            color: #b71c1c;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-por-iniciar {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .status-a-decorrer {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-concluída {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .session-locked {
+            opacity: 0.7;
+            background: #f8f8f8;
+        }
+
+        .session-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .session-status {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .locked-badge {
+            font-size: 12px;
+            color: #888;
+            padding: 6px 12px;
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .locked-badge i {
+            margin-right: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+        }
+
+        .no-sessions {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+        }
+
+        .modal-large {
+            max-width: 600px;
+        }
+
+        .form-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .form-section h3 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .form-section h3 i {
+            margin-right: 8px;
+            color: #3b82f6;
+        }
+
+        .form-section .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .event-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .session-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <script>
+        let sessoesCarregadas = {};
+
+        function toggleSessoes(eventoId) {
+            const container = document.getElementById('sessoes-' + eventoId);
+            const icon = document.getElementById('icon-' + eventoId);
+
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                icon.className = 'fa-solid fa-chevron-up';
+                if (!sessoesCarregadas[eventoId]) {
+                    carregarSessoes(eventoId);
+                }
+            } else {
+                container.style.display = 'none';
+                icon.className = 'fa-solid fa-chevron-down';
+            }
+        }
+
+        function carregarSessoes(eventoId) {
+            fetch('/api/evento/' + eventoId + '/sessoes_inscricao')
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        sessoesCarregadas[eventoId] = true;
+                        renderizarSessoes(eventoId, result.sessoes);
+                    } else {
+                        document.getElementById('lista-sessoes-' + eventoId).innerHTML =
+                            '<div class="no-sessions"><p>Erro ao carregar sessões</p></div>';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('lista-sessoes-' + eventoId).innerHTML =
+                        '<div class="no-sessions"><p>Erro ao carregar sessões</p></div>';
+                });
+        }
+
+        function renderizarSessoes(eventoId, sessoes) {
+            const container = document.getElementById('lista-sessoes-' + eventoId);
+
+            if (sessoes.length === 0) {
+                container.innerHTML = `
+                    <div class="no-sessions">
+                        <i class="fa-solid fa-stopwatch"></i>
+                        <p>Nenhuma sessão encontrada</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            sessoes.forEach(sessao => {
+                const statusClass = sessao.status.toLowerCase().replace(' ', '-');
+                const podeInscrever = sessao.pode_inscrever;
+
+                html += `
+                    <div class="session-card ${!podeInscrever ? 'session-locked' : ''}">
+                        <div class="session-info">
+                            <div class="session-title-row">
+                                <strong>${sessao.tipo}</strong>
+                                <span class="session-status status-${statusClass}">${sessao.status}</span>
+                            </div>
+                            <div class="session-details">
+                                <span><i class="fa-solid fa-calendar"></i> ${sessao.data}</span>
+                                <span><i class="fa-solid fa-clock"></i> ${sessao.hora_inicio} - ${sessao.hora_fim}</span>
+                            </div>
+                            ${renderizarInscricoes(sessao.id, sessao.inscricoes, podeInscrever)}
+                        </div>
+                        <div class="session-actions">
+                            <span class="inscricoes-count">${sessao.inscricoes.length} inscrição(ões)</span>
+                            ${podeInscrever ? `
+                                <button class="btn btn-sm btn-primary" onclick="abrirModal(${sessao.id}, '${sessao.tipo}')">
+                                    <i class="fa-solid fa-plus"></i> Inscrever
+                                </button>
+                            ` : `
+                                <span class="locked-badge">
+                                    <i class="fa-solid fa-lock"></i> ${sessao.status === 'Concluída' ? 'Concluída' : 'Aguarda sessão anterior'}
+                                </span>
+                            `}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderizarInscricoes(sessaoId, inscricoes, podeInscrever) {
+            if (inscricoes.length === 0) return '';
+
+            let html = '<div class="inscricoes-list">';
+            inscricoes.forEach(insc => {
+                html += `
+                    <div class="inscricao-item">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span><strong>${insc.piloto_nome}</strong> - ${insc.carro_marca} ${insc.carro_modelo}</span>
+                        <button class="remove-btn" onclick="removerInscricao(${sessaoId}, ${insc.piloto_licenca}, '${insc.carro_vin}')" title="Remover inscrição">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function abrirModal(sessaoId, tipoSessao) {
+            document.getElementById('sessaoId').value = sessaoId;
+            document.getElementById('modalTitle').textContent = 'Inscrever na Sessão: ' + tipoSessao;
+            document.getElementById('piloto').value = '';
+            document.getElementById('carro').value = '';
+            document.getElementById('combustivel').value = 50;
+            document.getElementById('pressao').value = 28;
+            document.getElementById('aerodinamica').value = 3;
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        function removerInscricao(sessaoId, pilotoLicenca, carroVin) {
+            if (confirm('Tem a certeza que deseja remover esta inscrição?')) {
+                fetch('/api/participacao_sessao', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_sessao: sessaoId,
+                        numero_licenca: pilotoLicenca,
+                        VIN_carro: carroVin
+                    })
+                })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            // Reload sessions for this event
+                            const eventoId = findEventoIdFromSessao(sessaoId);
+                            if (eventoId) {
+                                sessoesCarregadas[eventoId] = false;
+                                carregarSessoes(eventoId);
+                            } else {
+                                location.reload();
+                            }
+                        } else {
+                            alert('Erro: ' + result.message);
+                        }
+                    })
+                    .catch(error => alert('Erro: ' + error));
+            }
+        }
+
+        function findEventoIdFromSessao(sessaoId) {
+            // Find the parent evento by looking at which sessions are visible
+            for (let eventoId in sessoesCarregadas) {
+                if (sessoesCarregadas[eventoId]) {
+                    return eventoId;
+                }
+            }
+            return null;
+        }
+
+        document.getElementById('inscricaoForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const data = {
+                id_sessao: document.getElementById('sessaoId').value,
+                numero_licenca: document.getElementById('piloto').value,
+                VIN_carro: document.getElementById('carro').value,
+                combustivel_inicial: document.getElementById('combustivel').value,
+                pressao_pneus: document.getElementById('pressao').value,
+                configuracao_aerodinamica: document.getElementById('aerodinamica').value
+            };
+
+            fetch('/api/participacao_sessao', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        fecharModal();
+                        // Reload all sessions
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + result.message);
+                    }
+                })
+                .catch(error => alert('Erro: ' + error));
+        });
+
+        // Close modal on overlay click
+        document.getElementById('modalOverlay').addEventListener('click', function (e) {
+            if (e.target === this) fecharModal();
+        });
+    </script>
+</body>
+
+</html>

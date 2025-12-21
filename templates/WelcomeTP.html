@@ -4,37 +4,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Estoril Track Manager</title>
+  <title>Estoril Track Manager - Técnico de Pista</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="/static/css/sidebar.css">
   <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/team-manager.css">
 </head>
 
 <body>
-
   <aside class="sidebar" aria-label="Barra lateral">
-    <nav>
-      <button class="sidebar-btn" onclick="window.location.href='/'">
-        <i class="fa-solid fa-house"></i>
-        <span>Início</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/events'">
-        <i class="fa-solid fa-calendar"></i>
-        <span>Eventos</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/records'">
-        <i class="fa-solid fa-ranking-star"></i>
-        <span>Recordes</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/pilots'">
-        <i class="fa-solid fa-users"></i>
-        <span>Pilotos</span>
-      </button>
-      <button class="sidebar-btn" onclick="window.location.href='/teams'">
-        <i class="fa-solid fa-warehouse"></i>
-        <span>Equipas</span>
-      </button>
-    </nav>
     <div class="sidebar-bottom">
       <button class="sidebar-btn settings" onclick="window.location.href='/settings'">
         <i class="fa-solid fa-gear"></i>
@@ -48,7 +26,28 @@
   </aside>
 
   <div class="content">
-    <h1>Página Do Técnico de Pista</h1>
+    <div class="team-header">
+      <h1>Bem-vindo, {{ username }}</h1>
+      <p><i class="fa-solid fa-flag-checkered"></i> Painel de Técnico de Pista</p>
+    </div>
+
+    <div class="dashboard-grid">
+      <a href="/condicoes_pista" class="dashboard-card">
+        <i class="fa-solid fa-cloud-sun"></i>
+        <h3>Condições de Pista</h3>
+        <p>Introduzir condições meteorológicas das sessões</p>
+      </a>
+      <a href="/registar_voltas" class="dashboard-card">
+        <i class="fa-solid fa-stopwatch"></i>
+        <h3>Registar Voltas</h3>
+        <p>Registar tempos de volta dos pilotos</p>
+      </a>
+      <a href="/sessoes_ativas" class="dashboard-card">
+        <i class="fa-solid fa-play"></i>
+        <h3>Sessões Ativas</h3>
+        <p>Ver sessões a decorrer</p>
+      </a>
+    </div>
   </div>
 
 </body>
