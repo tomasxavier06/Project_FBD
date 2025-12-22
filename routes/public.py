@@ -145,7 +145,7 @@ def lap_details(id_volta):
             # query que junta a Volta com a Sessão para obter os dados técnicos
             query = """
                 SELECT 
-                    S.temperatura_asfalto, S.temperatura_ar, S.humidade, S.precipitação,
+                    S.temperatura_asfalto, S.temperatura_ar, S.humidade, S.precipitacao,
                     V.pressao_pneus, V.numero_volta, S.tipo as tipo_sessao,
                     dbo.fn_FormatarTempoMS(V.tempo) as tempo
                 FROM Volta V

@@ -183,7 +183,7 @@ def condicoes_pista():
         # Get active sessions (from events that are 'A Decorrer')
         cursor.execute("""
             SELECT s.id_sessao, s.data, s.tipo, s.hora_inicio, s.hora_fim,
-                   s.temperatura_asfalto, s.temperatura_ar, s.humidade, s.precipitação,
+                   s.temperatura_asfalto, s.temperatura_ar, s.humidade, s.precipitacao,
                    e.nome as evento_nome
             FROM Sessao s
             INNER JOIN Evento e ON s.id_evento = e.id_evento
@@ -224,7 +224,7 @@ def atualizar_condicoes_sessao(id):
             
             cursor.execute("""
                 UPDATE Sessao 
-                SET temperatura_asfalto=?, temperatura_ar=?, humidade=?, precipitação=?
+                SET temperatura_asfalto=?, temperatura_ar=?, humidade=?, precipitacao=?
                 WHERE id_sessao=?
             """, (
                 data.get('temperatura_asfalto'),

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/static/css/sidebar.css">
     <link rel="stylesheet" href="/static/css/base.css">
     <link rel="stylesheet" href="/static/css/management.css">
+    <link rel="stylesheet" href="/static/css/modal-tabs.css">
 </head>
 
 <body>
@@ -93,57 +94,132 @@
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <h2 id="modalTitle">Adicionar Carro</h2>
-            <form id="carroForm">
-                <input type="hidden" id="editMode" value="false">
-                <input type="hidden" id="originalVin">
-                <div class="form-group">
-                    <label for="vin">VIN</label>
-                    <input type="text" id="vin" name="vin" maxlength="50" required>
-                </div>
-                <div class="form-row">
+
+            <!-- Tabs for New vs Available -->
+            <div class="modal-tabs" id="modalTabs">
+                <button class="tab-btn active" onclick="showTab('novo')">Novo Carro</button>
+                <button class="tab-btn" onclick="showTab('disponivel')">Carros Disponíveis</button>
+            </div>
+
+            <!-- Tab: New Car Form -->
+            <div id="tabNovo" class="tab-content active">
+                <form id="carroForm">
+                    <input type="hidden" id="editMode" value="false">
+                    <input type="hidden" id="originalVin">
                     <div class="form-group">
-                        <label for="marca">Marca</label>
-                        <input type="text" id="marca" name="marca" required>
+                        <label for="vin">VIN</label>
+                        <input type="text" id="vin" name="vin" maxlength="50" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="marca">Marca</label>
+                            <input type="text" id="marca" name="marca" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="modelo">Modelo</label>
+                            <input type="text" id="modelo" name="modelo" required>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label for="modelo">Modelo</label>
-                        <input type="text" id="modelo" name="modelo" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="categoria">Categoria</label>
-                    <input type="text" id="categoria" name="categoria" placeholder="Ex: GT3, LMP2, Turismo" required>
-                </div>
-                <div class="form-group">
-                    <label for="tipo_motor">Tipo de Motor</label>
-                    <input type="text" id="tipo_motor" name="tipo_motor" placeholder="Ex: V8, V6 Turbo, Elétrico"
-                        required>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="potencia">Potência (cv)</label>
-                        <input type="number" id="potencia" name="potencia" min="1" required>
+                        <label for="categoria">Categoria</label>
+                        <input type="text" id="categoria" name="categoria" placeholder="Ex: GT3, LMP2, Turismo"
+                            required>
                     </div>
                     <div class="form-group">
-                        <label for="peso">Peso (kg)</label>
-                        <input type="number" id="peso" name="peso" min="1" required>
+                        <label for="tipo_motor">Tipo de Motor</label>
+                        <input type="text" id="tipo_motor" name="tipo_motor" placeholder="Ex: V8, V6 Turbo, Elétrico"
+                            required>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="potencia">Potência (cv)</label>
+                            <input type="number" id="potencia" name="potencia" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="peso">Peso (kg)</label>
+                            <input type="number" id="peso" name="peso" min="1" required>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-cancel" onclick="fecharModal()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tab: Available Cars List -->
+            <div id="tabDisponivel" class="tab-content">
+                <div id="carrosDisponiveis" class="available-list">
+                    <p class="loading">A carregar...</p>
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-cancel" onclick="fecharModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-cancel" onclick="fecharModal()">Fechar</button>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 
     <script>
+        function showTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            if (tab === 'novo') {
+                document.querySelector('.tab-btn:first-child').classList.add('active');
+                document.getElementById('tabNovo').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn:last-child').classList.add('active');
+                document.getElementById('tabDisponivel').classList.add('active');
+                carregarCarrosDisponiveis();
+            }
+        }
+
+        function carregarCarrosDisponiveis() {
+            fetch('/api/carros_disponiveis')
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('carrosDisponiveis');
+                    if (!data.success || data.carros.length === 0) {
+                        container.innerHTML = '<p class="empty-message">Não há carros disponíveis</p>';
+                        return;
+                    }
+                    let html = '';
+                    data.carros.forEach(c => {
+                        html += `<div class="available-item">
+                            <div class="info">
+                                <strong>${c.marca} ${c.modelo}</strong>
+                                <small>VIN: ${c.vin} | ${c.categoria} | ${c.tipo_motor} | ${c.potencia}cv | ${c.peso}kg</small>
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="vincularCarro('${c.vin}')">
+                                <i class="fa-solid fa-plus"></i> Adicionar
+                            </button>
+                        </div>`;
+                    });
+                    container.innerHTML = html;
+                });
+        }
+
+        function vincularCarro(vin) {
+            fetch('/api/carro', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ vin: vin, vincular_existente: true })
+            })
+                .then(r => r.json())
+                .then(result => {
+                    if (result.success) location.reload();
+                    else alert('Erro: ' + result.message);
+                });
+        }
+
         function abrirModal() {
             document.getElementById('modalOverlay').classList.add('active');
             document.getElementById('modalTitle').textContent = 'Adicionar Carro';
+            document.getElementById('modalTabs').style.display = 'flex';
             document.getElementById('editMode').value = 'false';
             document.getElementById('carroForm').reset();
             document.getElementById('vin').disabled = false;
+            showTab('novo');
         }
 
         function fecharModal() {
@@ -153,6 +229,7 @@
         function editarCarro(vin, modelo, marca, categoria, tipoMotor, potencia, peso) {
             document.getElementById('modalOverlay').classList.add('active');
             document.getElementById('modalTitle').textContent = 'Editar Carro';
+            document.getElementById('modalTabs').style.display = 'none';
             document.getElementById('editMode').value = 'true';
             document.getElementById('originalVin').value = vin;
             document.getElementById('vin').value = vin;
@@ -163,6 +240,7 @@
             document.getElementById('tipo_motor').value = tipoMotor;
             document.getElementById('potencia').value = potencia;
             document.getElementById('peso').value = peso;
+            showTab('novo');
         }
 
         function removerCarro(vin) {

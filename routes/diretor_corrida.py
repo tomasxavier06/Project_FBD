@@ -157,6 +157,20 @@ def cancelar_evento(id):
     try:
         with get_db() as conn:
             cursor = conn.cursor()
+            
+            # Verificar se o evento está com status 'Por Iniciar'
+            cursor.execute("SELECT status FROM Evento WHERE id_evento=?", (id,))
+            evento = cursor.fetchone()
+            
+            if evento is None:
+                return jsonify({'success': False, 'message': 'Evento não encontrado'}), 404
+            
+            if evento[0] != 'Por Iniciar':
+                return jsonify({
+                    'success': False, 
+                    'message': 'Só é possível cancelar eventos com status "Por Iniciar". Este evento está "' + evento[0] + '".'
+                }), 400
+            
             # Usar Stored Procedure com transação
             cursor.execute('EXEC sp_CancelarEventoCompleto ?', (id,))
             conn.commit()
@@ -320,6 +334,21 @@ def remover_sessao(id):
     try:
         with get_db() as conn:
             cursor = conn.cursor()
+            
+            # Verificar se a sessão está com status 'Por Iniciar'
+            cursor.execute("SELECT status FROM Sessao WHERE id_sessao=?", (id,))
+            sessao = cursor.fetchone()
+            
+            if sessao is None:
+                return jsonify({'success': False, 'message': 'Sessão não encontrada'}), 404
+            
+            sessao_status = sessao[0] if sessao[0] else 'Por Iniciar'
+            if sessao_status != 'Por Iniciar':
+                return jsonify({
+                    'success': False, 
+                    'message': 'Só é possível remover sessões com status "Por Iniciar". Esta sessão está "' + sessao_status + '".'
+                }), 400
+            
             cursor.execute("DELETE FROM Sessao WHERE id_sessao=?", (id,))
             conn.commit()
         
