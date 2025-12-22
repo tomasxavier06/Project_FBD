@@ -119,6 +119,12 @@
                 endif %}
               </a>
             </th>
+            <th>
+              <a href="/pilots?coluna=idade&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}{% if pesquisa_feita %}&nome_procurado={{ pesquisa_feita }}{% endif %}"
+                style="color: {{ '#cc0000' if coluna_ativa == 'idade' else 'inherit' }};">
+                Idade {% if coluna_ativa == 'idade' %}{{ '▲' if ordem_atual == 'asc' else '▼' }}{% else %}↕{% endif %}
+              </a>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -130,6 +136,7 @@
             <td>{{ piloto[3] }}</td>
             <td>{{ piloto[4] }}</td>
             <td>{{ piloto[5] }}</td>
+            <td>{{ piloto[6] if piloto[6] else '-' }} anos</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -137,20 +144,25 @@
     </div>
 
     <div id="grid-view" style="display: none;">
-      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; margin-top: 20px;">
+      <div
+        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; margin-top: 20px;">
         {% for piloto in pilotos %}
-        <div style="background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 20px; text-align: center; border-top: 5px solid #cc0000;">
-          
-          <div style="width: 110px; height: 110px; border-radius: 50%; background: #f5f5f5; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; border: 3px solid #eee;">
-              <i class="fa-solid fa-user" style="font-size: 50px; color: #ccc;"></i>
+        <div
+          style="background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 20px; text-align: center; border-top: 5px solid #cc0000;">
+
+          <div
+            style="width: 110px; height: 110px; border-radius: 50%; background: #f5f5f5; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; border: 3px solid #eee;">
+            <i class="fa-solid fa-user" style="font-size: 50px; color: #ccc;"></i>
           </div>
 
           <h3 style="margin: 10px 0 5px;">{{ piloto[1] }}</h3>
-          <p style="color: #cc0000; font-weight: bold; margin-bottom: 8px; font-size: 0.9em;">{{ piloto[4] if piloto[4] else 'Sem Equipa' }}</p>
-          
+          <p style="color: #cc0000; font-weight: bold; margin-bottom: 8px; font-size: 0.9em;">{{ piloto[4] if piloto[4]
+            else 'Sem Equipa' }}</p>
+
           <div style="font-size: 0.85em; color: #666; line-height: 1.5;">
             <i class="fa-solid fa-flag"></i> {{ piloto[3] }}<br>
-            <i class="fa-solid fa-trophy"></i> {{ piloto[5] }} Eventos
+            <i class="fa-solid fa-trophy"></i> {{ piloto[5] }} Eventos<br>
+            <i class="fa-solid fa-cake-candles"></i> {{ piloto[6] if piloto[6] else '-' }} anos
           </div>
         </div>
         {% endfor %}

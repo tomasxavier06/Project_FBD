@@ -1,6 +1,6 @@
 # Rotas públicas (acessíveis sem autenticação)
 from flask import Blueprint, render_template, request, jsonify
-from utils.database import get_db_connection
+from utils.database import get_db
 
 public_bp = Blueprint('public', __name__)
 
@@ -13,39 +13,37 @@ def homepage():
 @public_bp.route('/pilots')
 def pilots():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        pesquisa = request.args.get('nome_procurado')
-        coluna = request.args.get('coluna', 'nome')
-        ordem = request.args.get('ordem', 'asc')
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            pesquisa = request.args.get('nome_procurado')
+            coluna = request.args.get('coluna', 'nome')
+            ordem = request.args.get('ordem', 'asc')
 
-        colunas_validas = ['numero_licenca', 'nome', 'data_nascimento', 'nacionalidade', 'nome_equipa', 'numero_eventos']
+            colunas_validas = ['numero_licenca', 'nome', 'data_nascimento', 'nacionalidade', 'nome_equipa', 'numero_eventos']
 
-        if coluna not in colunas_validas:
-            coluna = 'nome'
+            if coluna not in colunas_validas:
+                coluna = 'nome'
 
-        if ordem.lower() not in ['asc', 'desc']:
-            ordem = 'asc'
+            if ordem.lower() not in ['asc', 'desc']:
+                ordem = 'asc'
 
-        query = """ SELECT P.numero_licenca, P.nome, P.data_nascimento, P.nacionalidade, E.nome AS nome_equipa, P.numero_eventos
-                    FROM Piloto P
-                    LEFT JOIN Equipa E ON P.id_equipa = E.id_equipa """
-        parametros = []
+            # Usar View vw_RankingPilotos (inclui idade calculada pela UDF)
+            query = "SELECT numero_licenca, nome, data_nascimento, nacionalidade, nome_equipa, numero_eventos, idade FROM vw_RankingPilotos"
+            parametros = []
 
-        if pesquisa:
-            query += "WHERE (P.nome LIKE ? OR E.nome LIKE ? OR P.nacionalidade LIKE ?)"
-            parametros.append(f"%{pesquisa}%")
-            parametros.append(f"%{pesquisa}%")
-            parametros.append(f"%{pesquisa}%")
+            if pesquisa:
+                query += " WHERE (nome LIKE ? OR nome_equipa LIKE ? OR nacionalidade LIKE ?)"
+                parametros.append(f"%{pesquisa}%")
+                parametros.append(f"%{pesquisa}%")
+                parametros.append(f"%{pesquisa}%")
 
-                    
-        query += f" ORDER BY {coluna} {ordem}"
-        
-        cursor.execute(query, tuple(parametros))
-
-        pilotos = cursor.fetchall()
-        conn.close()
+                        
+            query += f" ORDER BY {coluna} {ordem}"
+            
+            cursor.execute(query, tuple(parametros))
+            pilotos = cursor.fetchall()
+            
         return render_template('pilots.html', pilotos=pilotos, ordem_atual=ordem, coluna_ativa=coluna, pesquisa_feita=pesquisa)
     except Exception as e:
         print(f"erro real: {e}")
@@ -55,35 +53,34 @@ def pilots():
 @public_bp.route('/teams')
 def teams():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        with get_db() as conn:
+            cursor = conn.cursor()
 
-        pesquisa = request.args.get('nome_procurado')
-        coluna = request.args.get('coluna', 'nome')
-        ordem = request.args.get('ordem', 'asc')
+            pesquisa = request.args.get('nome_procurado')
+            coluna = request.args.get('coluna', 'nome')
+            ordem = request.args.get('ordem', 'asc')
 
-        colunas_validas = ['id_equipa', 'nome', 'pais', 'ID_utilizador_diretor_de_equipa']
+            colunas_validas = ['id_equipa', 'nome', 'pais', 'ID_utilizador_diretor_de_equipa']
 
-        if coluna not in colunas_validas:
-            coluna = 'nome'
+            if coluna not in colunas_validas:
+                coluna = 'nome'
 
-        if ordem.lower() not in ['asc', 'desc']:
-            ordem = 'asc'
+            if ordem.lower() not in ['asc', 'desc']:
+                ordem = 'asc'
 
-        query = " SELECT * FROM Equipa "
-        parametros = []
+            query = " SELECT * FROM Equipa "
+            parametros = []
 
-        if pesquisa:
-            query += "WHERE (nome LIKE ? OR pais LIKE ?)"
-            parametros.append(f"%{pesquisa}%")
-            parametros.append(f"%{pesquisa}%")
+            if pesquisa:
+                query += "WHERE (nome LIKE ? OR pais LIKE ?)"
+                parametros.append(f"%{pesquisa}%")
+                parametros.append(f"%{pesquisa}%")
 
-        query += f" ORDER BY {coluna} {ordem}"
-        
-        cursor.execute(query, tuple(parametros))
-
-        equipas_lista = cursor.fetchall()
-        conn.close()
+            query += f" ORDER BY {coluna} {ordem}"
+            
+            cursor.execute(query, tuple(parametros))
+            equipas_lista = cursor.fetchall()
+            
         return render_template('teams.html', equipas=equipas_lista, ordem_atual=ordem, coluna_ativa=coluna, pesquisa_feita=pesquisa)
     except Exception as e:
         print(f"erro real: {e}")
@@ -93,31 +90,27 @@ def teams():
 @public_bp.route('/team/<int:id>')
 def team_details(id):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        with get_db() as conn:
+            cursor = conn.cursor()
 
-        cursor.execute("SELECT nome, pais FROM Equipa WHERE id_equipa = ?", (id,))
-        equipa = cursor.fetchone()
+            cursor.execute("SELECT nome, pais FROM Equipa WHERE id_equipa = ?", (id,))
+            equipa = cursor.fetchone()
 
-        if not equipa:
-            conn.close()
-            return "<h3>Equipa não encontrada.</h3>", 404
+            if not equipa:
+                return "<h3>Equipa não encontrada.</h3>", 404
 
-        
-        cursor.execute("""
-            SELECT numero_licenca, nome, data_nascimento, nacionalidade 
-            FROM Piloto WHERE id_equipa = ?
-        """, (id,))
-        pilotos = cursor.fetchall()
+            cursor.execute("""
+                SELECT numero_licenca, nome, data_nascimento, nacionalidade 
+                FROM Piloto WHERE id_equipa = ?
+            """, (id,))
+            pilotos = cursor.fetchall()
 
+            cursor.execute("""
+                SELECT VIN, marca, modelo, categoria 
+                FROM Carro WHERE id_equipa = ?
+            """, (id,))
+            carros = cursor.fetchall()
 
-        cursor.execute("""
-            SELECT VIN, marca, modelo, categoria 
-            FROM Carro WHERE id_equipa = ?
-        """, (id,))
-        carros = cursor.fetchall()
-
-        conn.close()
         return render_template('team_details.html', equipa=equipa, pilotos=pilotos, carros=carros)
     except Exception as e:
         print(f"Erro ao carregar detalhes da equipa: {e}")
@@ -127,18 +120,17 @@ def team_details(id):
 @public_bp.route('/events')
 def events():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # garante que os status estão atualizados antes de listar
+            cursor.execute("EXEC sp_ManutencaoStatusEventos")
+            conn.commit()
+            
+            # lista os eventos com os totais 
+            cursor.execute("EXEC sp_ListarEventosComTotais")
+            eventos = cursor.fetchall()
         
-        # garante que os status estão atualizados antes de listar
-        cursor.execute("EXEC sp_ManutencaoStatusEventos")
-        conn.commit()
-        
-        # lista os eventos com os totais 
-        cursor.execute("EXEC sp_ListarEventosComTotais")
-        eventos = cursor.fetchall()
-        
-        conn.close()
         return render_template('events.html', eventos=eventos)
     except Exception as e:
         return f"Erro: {e}"
@@ -147,22 +139,21 @@ def events():
 @public_bp.route('/api/lap_details/<int:id_volta>')
 def lap_details(id_volta):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # query que junta a Volta com a Sessão para obter os dados técnicos
-        query = """
-            SELECT 
-                S.temperatura_asfalto, S.temperatura_ar, S.humidade, S.precipitação,
-                V.pressao_pneus, V.numero_volta, S.tipo as tipo_sessao,
-                dbo.fn_FormatarTempoMS(V.tempo) as tempo
-            FROM Volta V
-            INNER JOIN Sessao S ON V.id_sessao = S.id_sessao
-            WHERE V.id_volta = ?
-        """
-        cursor.execute(query, (id_volta,))
-        row = cursor.fetchone()
-        conn.close()
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # query que junta a Volta com a Sessão para obter os dados técnicos
+            query = """
+                SELECT 
+                    S.temperatura_asfalto, S.temperatura_ar, S.humidade, S.precipitação,
+                    V.pressao_pneus, V.numero_volta, S.tipo as tipo_sessao,
+                    dbo.fn_FormatarTempoMS(V.tempo) as tempo
+                FROM Volta V
+                INNER JOIN Sessao S ON V.id_sessao = S.id_sessao
+                WHERE V.id_volta = ?
+            """
+            cursor.execute(query, (id_volta,))
+            row = cursor.fetchone()
 
         if row:
             return jsonify({
@@ -179,65 +170,48 @@ def lap_details(id_volta):
 @public_bp.route('/records')
 def records():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        with get_db() as conn:
+            cursor = conn.cursor()
 
-        # 1. Obter listas para os dropdowns (Filtros Tradicionais)
-        # Nota: ORDER BY deve coincidir com o SELECT DISTINCT para evitar o erro 42000
-        cursor.execute("SELECT DISTINCT nome FROM Piloto ORDER BY nome")
-        lista_pilotos = [row[0] for row in cursor.fetchall()]
+            # 1. Obter listas para os dropdowns (Filtros Tradicionais)
+            cursor.execute("SELECT DISTINCT nome FROM Piloto ORDER BY nome")
+            lista_pilotos = [row[0] for row in cursor.fetchall()]
 
-        cursor.execute("""
-            SELECT DISTINCT (marca + ' ' + modelo) 
-            FROM Carro 
-            ORDER BY (marca + ' ' + modelo)
-        """)
-        lista_carros = [row[0] for row in cursor.fetchall()]
+            cursor.execute("""
+                SELECT DISTINCT (marca + ' ' + modelo) 
+                FROM Carro 
+                ORDER BY (marca + ' ' + modelo)
+            """)
+            lista_carros = [row[0] for row in cursor.fetchall()]
 
-        cursor.execute("SELECT DISTINCT nome FROM Evento ORDER BY nome")
-        lista_eventos = [row[0] for row in cursor.fetchall()]
+            cursor.execute("SELECT DISTINCT nome FROM Evento ORDER BY nome")
+            lista_eventos = [row[0] for row in cursor.fetchall()]
 
-        # 2. Capturar os filtros selecionados via GET
-        f_piloto = request.args.get('piloto', '')
-        f_carro = request.args.get('carro', '')
-        f_evento = request.args.get('evento', '')
+            # 2. Capturar os filtros selecionados via GET
+            f_piloto = request.args.get('piloto', '')
+            f_carro = request.args.get('carro', '')
+            f_evento = request.args.get('evento', '')
 
-        # 3. Query Principal de Recordes usando a UDF fn_FormatarTempoMS
-        query = """
-            SELECT 
-                dbo.fn_FormatarTempoMS(V.tempo) as tempo_formatado,
-                P.nome as piloto,
-                C.marca + ' ' + C.modelo as carro,
-                Ev.nome as evento,
-                V.tempo,
-                S.data,
-                V.id_volta
-            FROM Volta V
-            INNER JOIN Piloto P ON V.numero_licenca = P.numero_licenca
-            INNER JOIN Carro C ON V.carro_VIN = C.VIN
-            INNER JOIN Sessao S ON V.id_sessao = S.id_sessao
-            INNER JOIN Evento Ev ON S.id_evento = Ev.id_evento
-            WHERE 1=1
-        """
-        params = []
+            # Usar View vw_Recordes (inclui gap calculado pela UDF)
+            query = "SELECT tempo_formatado, piloto, carro, evento, tempo, data, id_volta, gap FROM vw_Recordes WHERE 1=1"
+            params = []
 
-        # Aplicação dos filtros via Dropdowns (comparações exatas)
-        if f_piloto:
-            query += " AND P.nome = ?"
-            params.append(f_piloto)
-        if f_carro:
-            query += " AND (C.marca + ' ' + C.modelo) = ?"
-            params.append(f_carro)
-        if f_evento:
-            query += " AND Ev.nome = ?"
-            params.append(f_evento)
+            # Aplicação dos filtros via Dropdowns (comparações exatas)
+            if f_piloto:
+                query += " AND piloto = ?"
+                params.append(f_piloto)
+            if f_carro:
+                query += " AND carro = ?"
+                params.append(f_carro)
+            if f_evento:
+                query += " AND evento = ?"
+                params.append(f_evento)
 
-        # Ordenar pelo tempo real (milissegundos) do mais rápido para o mais lento
-        query += " ORDER BY V.tempo ASC"
+            # Ordenar pelo tempo real (milissegundos) do mais rápido para o mais lento
+            query += " ORDER BY tempo ASC"
 
-        cursor.execute(query, params)
-        recordes = cursor.fetchall()
-        conn.close()
+            cursor.execute(query, params)
+            recordes = cursor.fetchall()
 
         # 4. Renderizar o template com todas as listas e filtros
         return render_template('records.html', 

@@ -98,6 +98,7 @@
                                 href="/records?coluna=tempo&ordem={{ 'desc' if ordem_atual == 'asc' else 'asc' }}&piloto={{f_piloto}}&carro={{f_carro}}&evento={{f_evento}}">Tempo
                                 Volta {{ '▲' if coluna_ativa == 'tempo' and ordem_atual == 'asc' else ('▼' if
                                 coluna_ativa == 'tempo' else '↕') }}</a></th>
+                        <th>Gap</th>
                         <th>Piloto</th>
                         <th>Carro</th>
                         <th>Evento</th>
@@ -109,6 +110,9 @@
                     <tr>
                         <td><span class="lap-time" style="cursor: pointer;" onclick="showDetails({{ recorde[6] }})">{{
                                 recorde[0] }}</span></td>
+                        <td style="color: {{ '#00aa00' if recorde[7] == '00:00:00.000' else '#cc0000' }};">
+                            {{ '+' + recorde[7] if recorde[7] != '00:00:00.000' else '-' }}
+                        </td>
                         <td>
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <div
@@ -127,7 +131,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" style="text-align: center; padding: 30px; color: #888;">
+                        <td colspan="6" style="text-align: center; padding: 30px; color: #888;">
                             <i class="fa-solid fa-circle-exclamation"
                                 style="font-size: 30px; margin-bottom: 10px;"></i><br>
                             Nenhum recorde encontrado com estes filtros.
