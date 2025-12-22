@@ -75,7 +75,7 @@ CREATE TABLE Sessao (
     hora_inicio TIME,
     hora_fim TIME,
     status VARCHAR(20) DEFAULT 'Por Iniciar',
-    FOREIGN KEY (id_evento) REFERENCES Evento(id_evento) ON DELETE CASCADE --TEM REDUNDANCIA COM FRONTEND ALTERAR
+    FOREIGN KEY (id_evento) REFERENCES Evento(id_evento) ON DELETE CASCADE
 );
 
 CREATE TABLE Volta (
@@ -102,7 +102,8 @@ CREATE TABLE Participa_Sessao (
     combustivel_inicial INT,
     pressao_pneus INT,
     configuracao_aerodinamica INT,
-    PRIMARY KEY (id_sessao, numero_licenca, VIN_carro),
+    PRIMARY KEY (id_sessao, numero_licenca, VIN_carro)
+    WITH (FILLFACTOR = 75),
     FOREIGN KEY (id_sessao) REFERENCES Sessao(id_sessao) ON DELETE CASCADE,
     FOREIGN KEY (numero_licenca) REFERENCES Piloto(numero_licenca),
     FOREIGN KEY (VIN_carro) REFERENCES Carro(VIN),
@@ -118,7 +119,7 @@ CREATE TABLE Participa_Evento (
     FOREIGN KEY (id_evento) REFERENCES Evento(id_evento) ON DELETE CASCADE
 );
 
--- UDF: Converter "mm:ss:ms" para milissegundos
+
 CREATE FUNCTION dbo.TempoParaMs (@tempo VARCHAR(12))
 RETURNS INT
 AS
@@ -131,7 +132,7 @@ BEGIN
 END;
 GO
 
--- Stored Procedure: Registar Volta
+
 CREATE PROCEDURE dbo.sp_RegistarVolta
     @id_sessao INT,
     @numero_licenca INT,
@@ -177,7 +178,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    -- Verificar se a sessão tem condições climáticas registadas
+
     IF EXISTS (
         SELECT 1 FROM inserted i
         INNER JOIN Sessao S ON i.id_sessao = S.id_sessao
@@ -190,14 +191,14 @@ BEGIN
         RETURN;
     END
     
-    -- Se passou validação, inserir a volta
+
     INSERT INTO Volta (id_sessao, numero_licenca, carro_VIN, tempo, numero_volta, data_hora, pressao_pneus, ID_utilizador_tecnico_de_pista)
     SELECT id_sessao, numero_licenca, carro_VIN, tempo, numero_volta, GETDATE(), pressao_pneus, ID_utilizador_tecnico_de_pista
     FROM inserted;
 END;
 GO
 
--- SP: Adicionar Piloto (com validação)
+
 CREATE PROCEDURE sp_AdicionarPiloto
     @numero_licenca INT,
     @nome VARCHAR(100),
@@ -206,7 +207,7 @@ CREATE PROCEDURE sp_AdicionarPiloto
     @id_equipa INT
 AS
 BEGIN
-    -- Verificar se já existe
+
     IF EXISTS (SELECT 1 FROM Piloto WHERE numero_licenca = @numero_licenca)
     BEGIN
         RAISERROR('Já existe um piloto com este número de licença!', 16, 1);
@@ -218,7 +219,7 @@ BEGIN
 END;
 GO
 
--- SP: Vincular Piloto Existente a Equipa
+
 CREATE PROCEDURE sp_VincularPiloto
     @numero_licenca INT,
     @id_equipa INT
@@ -232,7 +233,7 @@ BEGIN
 END;
 GO
 
--- SP: Adicionar Carro (com validação)
+
 CREATE PROCEDURE sp_AdicionarCarro
     @VIN VARCHAR(50),
     @modelo VARCHAR(100),
@@ -244,7 +245,7 @@ CREATE PROCEDURE sp_AdicionarCarro
     @id_equipa INT
 AS
 BEGIN
-    -- Verificar se já existe
+
     IF EXISTS (SELECT 1 FROM Carro WHERE VIN = @VIN)
     BEGIN
         RAISERROR('Já existe um carro com este VIN!', 16, 1);
@@ -256,7 +257,7 @@ BEGIN
 END;
 GO
 
--- SP: Vincular Carro Existente a Equipa
+
 CREATE PROCEDURE sp_VincularCarro
     @VIN VARCHAR(50),
     @id_equipa INT
@@ -270,30 +271,30 @@ BEGIN
 END;
 GO
 
--- SP: Cancelar Evento Completo (com transação)
+
 CREATE PROCEDURE sp_CancelarEventoCompleto
     @id_evento INT
 AS
 BEGIN
     BEGIN TRANSACTION;
     BEGIN TRY
-        -- Apagar participações nas sessões
+
         DELETE PS FROM Participa_Sessao PS
         INNER JOIN Sessao S ON PS.id_sessao = S.id_sessao
         WHERE S.id_evento = @id_evento;
         
-        -- Apagar voltas
+
         DELETE V FROM Volta V
         INNER JOIN Sessao S ON V.id_sessao = S.id_sessao
         WHERE S.id_evento = @id_evento;
         
-        -- Apagar participações de equipas
+
         DELETE FROM Participa_Evento WHERE id_evento = @id_evento;
         
-        -- Apagar sessões
+
         DELETE FROM Sessao WHERE id_evento = @id_evento;
         
-        -- Apagar evento
+
         DELETE FROM Evento WHERE id_evento = @id_evento;
         
         COMMIT;
@@ -328,13 +329,13 @@ GO
 CREATE PROCEDURE sp_ManutencaoStatusEventos
 AS
 BEGIN
-    -- 1. Passar para 'Concluído' eventos que já passaram da data
+
     UPDATE Evento 
     SET status = 'Concluído' 
     WHERE data_fim < CAST(GETDATE() AS DATE) 
     AND status != 'Concluído';
 
-    -- 2. Passar para 'A Decorrer' eventos que começam hoje
+
     UPDATE Evento 
     SET status = 'A Decorrer' 
     WHERE data_inicio <= CAST(GETDATE() AS DATE) 
@@ -366,8 +367,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- atualiza o evento para 'Concluído' se todas as suas sessões já tiverem terminado
-    -- OU se a data_fim do evento já tiver passado em relação à data atual
+
     UPDATE Evento
     SET status = 'Concluído'
     FROM Evento E
@@ -386,7 +386,7 @@ CREATE FUNCTION dbo.fn_IdadePiloto(@numero_licenca INT)
 RETURNS INT AS BEGIN
     RETURN (SELECT DATEDIFF(YEAR, data_nascimento, GETDATE()) FROM Piloto WHERE numero_licenca = @numero_licenca);
 END;
-GO --falta alterar no frontend
+GO
 
 CREATE FUNCTION dbo.fn_GapParaMelhor(@id_volta INT)
 RETURNS INT AS BEGIN
@@ -394,24 +394,27 @@ RETURNS INT AS BEGIN
     SELECT @tempo = tempo, @id_sessao = id_sessao FROM Volta WHERE id_volta = @id_volta;
     RETURN @tempo - (SELECT MIN(tempo) FROM Volta WHERE id_sessao = @id_sessao);
 END;
-GO --falta alterar no frontend
+GO
 
 CREATE NONCLUSTERED INDEX IX_Utilizador_Login 
 ON Utilizador(username, password) 
-INCLUDE (id_utilizador, email);
+INCLUDE (id_utilizador, email)
+WITH (FILLFACTOR = 80);
 GO
 
 CREATE NONCLUSTERED INDEX IX_Volta_Tempo 
 ON Volta(tempo ASC) 
-INCLUDE (id_sessao, numero_licenca, carro_VIN);
+INCLUDE (id_sessao, numero_licenca, carro_VIN)
+WITH (FILLFACTOR = 70);
 GO
 
 CREATE NONCLUSTERED INDEX IX_Piloto_Nome 
 ON Piloto(nome) 
 INCLUDE (numero_licenca, data_nascimento, nacionalidade, id_equipa, numero_eventos);
+WITH (FILLFACTOR = 80);
 GO
 
--- View: Ranking de pilotos para listagem
+
 CREATE VIEW vw_RankingPilotos AS
 SELECT 
     P.numero_licenca,
@@ -426,7 +429,7 @@ FROM Piloto P
 LEFT JOIN Equipa E ON P.id_equipa = E.id_equipa;
 GO
 
--- View: Recordes para página de tempos
+
 CREATE VIEW vw_Recordes AS
 SELECT 
     dbo.fn_FormatarTempoMS(V.tempo) as tempo_formatado,
@@ -444,11 +447,6 @@ INNER JOIN Sessao S ON V.id_sessao = S.id_sessao
 INNER JOIN Evento Ev ON S.id_evento = Ev.id_evento;
 GO
 
--- ==========================================
--- NOVAS STORED PROCEDURES
--- ==========================================
-
--- SP 1: Registar Utilizador com Role
 CREATE PROCEDURE sp_RegistarUtilizador
     @username VARCHAR(50),
     @email VARCHAR(100),
@@ -495,7 +493,7 @@ BEGIN
 END;
 GO
 
--- SP 3: Alterar Status Evento
+
 CREATE PROCEDURE sp_AlterarStatusEvento
     @id_evento INT,
     @novo_status VARCHAR(50)
@@ -525,7 +523,7 @@ BEGIN
 END;
 GO
 
--- SP 4: Alterar Status Sessão
+
 CREATE PROCEDURE sp_AlterarStatusSessao
     @id_sessao INT,
     @novo_status VARCHAR(20)
@@ -552,7 +550,7 @@ BEGIN
 END;
 GO
 
--- SP 5: Inscrever Equipa em Evento
+
 CREATE PROCEDURE sp_InscreverEquipaEvento
     @id_equipa INT,
     @id_evento INT
@@ -579,7 +577,7 @@ BEGIN
 END;
 GO
 
--- SP 6: Cancelar Inscrição Evento
+
 CREATE PROCEDURE sp_CancelarInscricaoEvento
     @id_equipa INT,
     @id_evento INT
@@ -604,7 +602,7 @@ BEGIN
 END;
 GO
 
--- SP 7: Inscrever em Sessão
+
 CREATE PROCEDURE sp_InscreverSessao
     @id_sessao INT,
     @numero_licenca INT,
@@ -642,7 +640,7 @@ BEGIN
 END;
 GO
 
--- SP 8: Cancelar Inscrição Sessão
+
 CREATE PROCEDURE sp_CancelarInscricaoSessao
     @id_sessao INT,
     @numero_licenca INT,
@@ -665,7 +663,7 @@ BEGIN
 END;
 GO
 
--- SP 9: Criar Equipa
+
 CREATE PROCEDURE sp_CriarEquipa
     @nome VARCHAR(100),
     @pais VARCHAR(50),
@@ -693,7 +691,7 @@ BEGIN
 END;
 GO
 
--- SP 10: Criar Sessão
+
 CREATE PROCEDURE sp_CriarSessao
     @data DATE,
     @tipo VARCHAR(50),
@@ -723,7 +721,7 @@ BEGIN
 END;
 GO
 
--- SP 11: Atualizar Evento
+
 CREATE PROCEDURE sp_AtualizarEvento
     @id_evento INT,
     @nome VARCHAR(100),
@@ -753,7 +751,7 @@ BEGIN
 END;
 GO
 
--- SP 12: Atualizar Sessão
+
 CREATE PROCEDURE sp_AtualizarSessao
     @id_sessao INT,
     @data DATE,
@@ -778,7 +776,7 @@ BEGIN
 END;
 GO
 
--- SP 13: Remover Sessão
+
 CREATE PROCEDURE sp_RemoverSessao
     @id_sessao INT
 AS
@@ -804,7 +802,7 @@ BEGIN
 END;
 GO
 
--- SP 14: Atualizar Condições Pista
+
 CREATE PROCEDURE sp_AtualizarCondicoesPista
     @id_sessao INT,
     @temperatura_asfalto INT,
@@ -828,7 +826,7 @@ BEGIN
 END;
 GO
 
--- SP 15: Atualizar Piloto
+
 CREATE PROCEDURE sp_AtualizarPiloto
     @numero_licenca INT,
     @nome VARCHAR(100),
@@ -842,7 +840,7 @@ BEGIN
 END;
 GO
 
--- SP 16: Atualizar Carro
+
 CREATE PROCEDURE sp_AtualizarCarro
     @VIN VARCHAR(50),
     @modelo VARCHAR(50),
@@ -860,7 +858,6 @@ BEGIN
 END;
 GO
 
--- SP 17: Desvincular Piloto
 CREATE PROCEDURE sp_DesvincularPiloto
     @numero_licenca INT,
     @id_equipa INT
@@ -883,7 +880,6 @@ BEGIN
 END;
 GO
 
--- SP 18: Desvincular Carro
 CREATE PROCEDURE sp_DesvincularCarro
     @VIN VARCHAR(50),
     @id_equipa INT
