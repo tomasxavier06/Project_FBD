@@ -123,16 +123,38 @@ def events():
         with get_db() as conn:
             cursor = conn.cursor()
             
-            # garante que os status estão atualizados antes de listar
+            # 1. Obter o termo de pesquisa enviado pelo formulário
+            pesquisa = request.args.get('nome_procurado', '')
+            
+            # 2. Atualizar status dos eventos antes de listar
             cursor.execute("EXEC sp_ManutencaoStatusEventos")
             conn.commit()
             
-            # lista os eventos com os totais 
-            cursor.execute("EXEC sp_ListarEventosComTotais")
+            if pesquisa:
+                # 3. Se houver pesquisa, usamos uma Query com filtros LIKE
+                query = """
+                    SELECT 
+                        E.id_evento, E.nome, E.tipo, E.data_inicio, E.data_fim, E.status,
+                        (SELECT COUNT(DISTINCT id_equipa) FROM Participa_Evento PE WHERE PE.id_evento = E.id_evento) as total_equipas,
+                        (SELECT COUNT(DISTINCT ps.numero_licenca) 
+                        FROM Participa_Sessao ps 
+                        JOIN Sessao s ON ps.id_sessao = s.id_sessao 
+                        WHERE s.id_evento = E.id_evento) as total_pilotos
+                    FROM Evento E
+                    WHERE E.nome LIKE ? OR E.tipo LIKE ? OR E.status LIKE ?
+                    ORDER BY E.data_inicio DESC
+                """
+                v = f"%{pesquisa}%"
+                cursor.execute(query, (v, v, v))
+            else:
+                # 4. Se não houver pesquisa, mantém o comportamento original
+                cursor.execute("EXEC sp_ListarEventosComTotais")
+            
             eventos = cursor.fetchall()
         
-        return render_template('events.html', eventos=eventos)
+        return render_template('events.html', eventos=eventos, pesquisa_feita=pesquisa)
     except Exception as e:
+        print(f"Erro na rota de eventos: {e}")
         return f"Erro: {e}"
 
 

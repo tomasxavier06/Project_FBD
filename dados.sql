@@ -131,7 +131,7 @@ BEGIN
 END;
 GO
 
--- Stored Procedure: Registar Volta
+-- Stored Procedure: registar Volta
 CREATE PROCEDURE dbo.sp_RegistarVolta
     @id_sessao INT,
     @numero_licenca INT,
@@ -177,7 +177,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    -- Verificar se a sessão tem condições climáticas registadas
+    -- verifica se a sessão tem condições climáticas registadas
     IF EXISTS (
         SELECT 1 FROM inserted i
         INNER JOIN Sessao S ON i.id_sessao = S.id_sessao
@@ -190,14 +190,14 @@ BEGIN
         RETURN;
     END
     
-    -- Se passou validação, inserir a volta
+    -- se passou a validação, inserir a volta
     INSERT INTO Volta (id_sessao, numero_licenca, carro_VIN, tempo, numero_volta, data_hora, pressao_pneus, ID_utilizador_tecnico_de_pista)
     SELECT id_sessao, numero_licenca, carro_VIN, tempo, numero_volta, GETDATE(), pressao_pneus, ID_utilizador_tecnico_de_pista
     FROM inserted;
 END;
 GO
 
--- SP: Adicionar Piloto (com validação)
+-- SP: adicionar Piloto (com validação)
 CREATE PROCEDURE sp_AdicionarPiloto
     @numero_licenca INT,
     @nome VARCHAR(100),
@@ -386,7 +386,7 @@ CREATE FUNCTION dbo.fn_IdadePiloto(@numero_licenca INT)
 RETURNS INT AS BEGIN
     RETURN (SELECT DATEDIFF(YEAR, data_nascimento, GETDATE()) FROM Piloto WHERE numero_licenca = @numero_licenca);
 END;
-GO --falta alterar no frontend
+GO 
 
 CREATE FUNCTION dbo.fn_GapParaMelhor(@id_volta INT)
 RETURNS INT AS BEGIN
@@ -394,7 +394,7 @@ RETURNS INT AS BEGIN
     SELECT @tempo = tempo, @id_sessao = id_sessao FROM Volta WHERE id_volta = @id_volta;
     RETURN @tempo - (SELECT MIN(tempo) FROM Volta WHERE id_sessao = @id_sessao);
 END;
-GO --falta alterar no frontend
+GO 
 
 CREATE NONCLUSTERED INDEX IX_Utilizador_Login 
 ON Utilizador(username, password) 
