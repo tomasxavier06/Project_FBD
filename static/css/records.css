@@ -1,11 +1,8 @@
-/* static/css/records.css */
-
-/* Barra de Filtros Avançados */
 .filters-wrapper {
     background: #fff;
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     margin-bottom: 30px;
     border-left: 5px solid #cc0000;
 }
@@ -51,7 +48,9 @@
     transition: 0.3s;
 }
 
-.btn-filter:hover { background: #a30000; }
+.btn-filter:hover {
+    background: #a30000;
+}
 
 .btn-clear {
     display: block;
@@ -61,9 +60,12 @@
     font-size: 12px;
     text-decoration: none;
 }
-.btn-clear:hover { color: #cc0000; }
 
-/* Destaque para o Tempo (Recorde) */
+.btn-clear:hover {
+    color: #cc0000;
+}
+
+
 .lap-time {
     font-family: 'Courier New', monospace;
     font-weight: bold;
@@ -74,13 +76,13 @@
     border: 1px solid #ffcccc;
 }
 
-/* Cards de Eventos (Se estiveres a usar na página de eventos) */
+
 .event-card {
     background: #fff;
     padding: 20px;
     border-radius: 10px;
     border-top: 4px solid #cc0000;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -101,27 +103,31 @@
     outline: none;
 }
 
-/* 1. Fundo escuro (Overlay) */
+
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.75); /* Escurece o fundo */
-    display: none; /* Escondido por padrão */
+    background: rgba(0, 0, 0, 0.75);
+    /* Escurece o fundo */
+    display: none;
+    /* Escondido por padrão */
     justify-content: center;
     align-items: center;
-    z-index: 9999; /* Garante que fica por cima de tudo */
-    backdrop-filter: blur(3px); /* Efeito de desfoque opcional */
+    z-index: 9999;
+    /* Garante que fica por cima de tudo */
+    backdrop-filter: blur(3px);
+    /* Efeito de desfoque opcional */
 }
 
-/* 2. Ativação do Modal via JavaScript */
+
 .modal-overlay.active {
     display: flex;
 }
 
-/* 3. A Caixa do Modal (Tamanho original de 500px) */
+
 .modal {
     background: white;
     padding: 25px;
@@ -129,11 +135,11 @@
     max-width: 500px;
     width: 90%;
     position: relative;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
     animation: modalAppear 0.3s ease-out;
 }
 
-/* 4. Título e Estrutura Interna */
+
 .modal h2 {
     margin-top: 0;
     font-size: 1.25rem;
@@ -143,7 +149,7 @@
     margin-bottom: 20px;
 }
 
-/* 5. Grelha de Dados (Cards) */
+
 .dashboard-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -171,7 +177,7 @@
     color: #333;
 }
 
-/* 6. Botão Minimalista Alinhado à Direita */
+
 .modal-actions {
     margin-top: 20px;
     display: flex;
@@ -195,8 +201,15 @@
     transform: translateY(-1px);
 }
 
-/* Animação de entrada */
+
 @keyframes modalAppear {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

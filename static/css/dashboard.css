@@ -1,4 +1,3 @@
-/* Dashboard Styles - Welcome pages for authenticated users */
 :root {
     --sidebar-width: 60px;
     --sidebar-expanded: 220px;
@@ -18,7 +17,7 @@ body {
     overflow: hidden;
 }
 
-/* Hero section styles (for WelcomeDC) */
+
 .hero {
     position: relative;
     height: 100vh;
@@ -100,7 +99,7 @@ body {
     background: #fff;
 }
 
-/* Cards section for dashboard */
+
 .cards-section {
     position: fixed;
     top: 0;

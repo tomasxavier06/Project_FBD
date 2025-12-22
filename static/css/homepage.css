@@ -1,4 +1,3 @@
-/* Homepage Styles */
 html,
 body {
     height: 100%;
@@ -100,7 +99,7 @@ body {
     }
 }
 
-/* Estilos para os Cards da Homepage */
+
 .features-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -113,14 +112,16 @@ body {
     border-radius: 12px;
     text-align: center;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border-bottom: 4px solid transparent; /* Preparação para o hover */
+    border-bottom: 4px solid transparent;
+    /* Preparação para o hover */
 }
 
 .feature-card:hover {
     transform: translateY(-10px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
     background: #fff;
-    border-bottom: 4px solid #cc0000; /* O toque vermelho da marca */
+    border-bottom: 4px solid #cc0000;
+    /* O toque vermelho da marca */
 }
 
 .icon-wrapper {

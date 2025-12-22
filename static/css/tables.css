@@ -1,4 +1,3 @@
-/* Table Styles - For pilots, teams, and data listing pages */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -33,7 +32,7 @@ thead th a:hover {
     color: #555;
 }
 
-/* Search container */
+
 .search-container {
     margin-bottom: 25px;
     display: flex;
