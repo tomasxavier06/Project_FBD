@@ -1,4 +1,3 @@
-# Rotas do Diretor de Corrida
 from flask import Blueprint, render_template, request, jsonify, session, redirect
 from utils.database import get_db
 
@@ -27,7 +26,6 @@ def criar_evento():
     with get_db() as conn:
         cursor = conn.cursor()
         
-        # Verify user is Diretor de Corrida
         cursor.execute('SELECT * FROM Diretor_de_Corrida WHERE id_utilizador=?', (session['id'],))
         if cursor.fetchone() is None:
             return redirect('/logout')
@@ -36,14 +34,12 @@ def criar_evento():
             try:
                 data = request.get_json()
                 
-                # Insert event and get the new ID
                 cursor.execute(
                     "INSERT INTO Evento (nome, tipo, data_inicio, data_fim, status) OUTPUT INSERTED.id_evento VALUES (?, ?, ?, ?, ?)",
                     (data['nome'], data['tipo'], data['data_inicio'], data['data_fim'], 'Por Iniciar')
                 )
                 id_evento = cursor.fetchone()[0]
                 
-                # Insert all sessions for this event
                 sessoes = data.get('sessoes', [])
                 for sessao in sessoes:
                     cursor.execute(
@@ -73,14 +69,12 @@ def gerir_eventos():
     with get_db() as conn:
         cursor = conn.cursor()
         
-        # Verify user is Diretor de Corrida
         cursor.execute('SELECT * FROM Diretor_de_Corrida WHERE id_utilizador=?', (session['id'],))
         if cursor.fetchone() is None:
             return redirect('/logout')
         
         pesquisa = request.args.get('nome_procurado')
         
-        # Only get events that are NOT finished (Por Iniciar, A Decorrer)
         query = "SELECT id_evento, nome, tipo, data_inicio, data_fim, status FROM Evento WHERE status != 'Concluído'"
         parametros = []
         
@@ -104,14 +98,12 @@ def eventos_passados():
     with get_db() as conn:
         cursor = conn.cursor()
         
-        # Verify user is Diretor de Corrida
         cursor.execute('SELECT * FROM Diretor_de_Corrida WHERE id_utilizador=?', (session['id'],))
         if cursor.fetchone() is None:
             return redirect('/logout')
         
         pesquisa = request.args.get('nome_procurado')
         
-        # Only get finished events
         query = "SELECT id_evento, nome, tipo, data_inicio, data_fim, status FROM Evento WHERE status = 'Concluído'"
         parametros = []
         
@@ -127,7 +119,6 @@ def eventos_passados():
     return render_template('eventos_passados.html', eventos=eventos, pesquisa_feita=pesquisa)
 
 
-# API endpoints for event management
 @dc_bp.route('/api/evento/<int:id>', methods=['PUT'])
 def editar_evento(id):
     if 'loggedin' not in session:
@@ -158,7 +149,6 @@ def cancelar_evento(id):
         with get_db() as conn:
             cursor = conn.cursor()
             
-            # Verificar se o evento está com status 'Por Iniciar'
             cursor.execute("SELECT status FROM Evento WHERE id_evento=?", (id,))
             evento = cursor.fetchone()
             
@@ -171,7 +161,6 @@ def cancelar_evento(id):
                     'message': 'Só é possível cancelar eventos com status "Por Iniciar". Este evento está "' + evento[0] + '".'
                 }), 400
             
-            # Usar Stored Procedure com transação
             cursor.execute('EXEC sp_CancelarEventoCompleto ?', (id,))
             conn.commit()
         
@@ -269,7 +258,6 @@ def alterar_status_sessao(id):
         
         with get_db() as conn:
             cursor = conn.cursor()
-            # Usar Stored Procedure para alterar status
             cursor.execute('EXEC sp_AlterarStatusSessao ?, ?', (id, data['status']))
             conn.commit()
         
@@ -288,7 +276,6 @@ def criar_sessao():
         
         with get_db() as conn:
             cursor = conn.cursor()
-            # Usar Stored Procedure para criar sessão
             cursor.execute(
                 'EXEC sp_CriarSessao ?, ?, ?, ?, ?',
                 (data['data'], data['tipo'], data['hora_inicio'], data['hora_fim'], data['id_evento'])
@@ -310,7 +297,6 @@ def editar_sessao(id):
         
         with get_db() as conn:
             cursor = conn.cursor()
-            # Usar Stored Procedure para atualizar sessão
             cursor.execute(
                 'EXEC sp_AtualizarSessao ?, ?, ?, ?, ?',
                 (id, data['data'], data['tipo'], data['hora_inicio'], data['hora_fim'])
@@ -330,7 +316,6 @@ def remover_sessao(id):
     try:
         with get_db() as conn:
             cursor = conn.cursor()
-            # Usar Stored Procedure para remover sessão (já valida status)
             cursor.execute('EXEC sp_RemoverSessao ?', (id,))
             conn.commit()
         

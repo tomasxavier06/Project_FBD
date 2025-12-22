@@ -1,4 +1,3 @@
-# Rotas do Diretor de Equipa
 from flask import Blueprint, render_template, request, jsonify, session, redirect
 from utils.database import get_db
 
@@ -16,7 +15,6 @@ def welcomeDE():
         if cursor.fetchone() is None:
             return redirect('/logout')
         
-        # Verificar se o diretor já tem uma equipa
         cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
         equipa = cursor.fetchone()
         tem_equipa = equipa is not None
@@ -32,12 +30,10 @@ def criar_equipa():
     with get_db() as conn:
         cursor = conn.cursor()
         
-        # Verify user is Diretor de Equipa
         cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?', (session['id'],))
         if cursor.fetchone() is None:
             return redirect('/logout')
         
-        # Check if director already has a team
         cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
         if cursor.fetchone() is not None:
             return redirect('/welcomeDE')
@@ -45,10 +41,8 @@ def criar_equipa():
         if request.method == 'GET':
             return render_template('criar_equipa.html')
         
-        # POST - Create team
         try:
             data = request.get_json()
-            # Usar Stored Procedure para criar equipa
             cursor.execute(
                 'EXEC sp_CriarEquipa ?, ?, ?',
                 (data['nome'], data['pais'], session['id'])
@@ -67,19 +61,16 @@ def pilotos_equipa():
     with get_db() as conn:
         cursor = conn.cursor()
         
-        # Verificar se é diretor de equipa
         cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?', (session['id'],))
         if cursor.fetchone() is None:
             return redirect('/logout')
         
-        # Obter a equipa do diretor
         cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
         equipa = cursor.fetchone()
         
         if equipa is None:
             return redirect('/criar_equipa')
         
-        # Obter pilotos da equipa
         cursor.execute('SELECT numero_licenca, nome, data_nascimento, nacionalidade FROM Piloto WHERE id_equipa=?', (equipa[0],))
         pilotos = cursor.fetchall()
     
@@ -97,14 +88,12 @@ def adicionar_piloto():
         with get_db() as conn:
             cursor = conn.cursor()
             
-            # Obter equipa do diretor
             cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
             equipa = cursor.fetchone()
             
             if equipa is None:
                 return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
             
-            # Usar Stored Procedures
             if data.get('vincular_existente'):
                 cursor.execute('EXEC sp_VincularPiloto ?, ?', (data['numero_licenca'], equipa[0]))
             else:
@@ -158,7 +147,6 @@ def editar_piloto(id):
         
         with get_db() as conn:
             cursor = conn.cursor()
-            # Usar Stored Procedure para atualizar piloto
             cursor.execute(
                 'EXEC sp_AtualizarPiloto ?, ?, ?, ?',
                 (id, data['nome'], data['data_nascimento'], data['nacionalidade'])
@@ -179,7 +167,6 @@ def remover_piloto(id):
         with get_db() as conn:
             cursor = conn.cursor()
             
-            # Get the team of the director
             cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
             equipa = cursor.fetchone()
             
@@ -188,7 +175,6 @@ def remover_piloto(id):
             
             id_equipa = equipa[0]
             
-            # Usar Stored Procedure para desvincular piloto (já valida eventos ativos)
             cursor.execute('EXEC sp_DesvincularPiloto ?, ?', (id, id_equipa))
             conn.commit()
         
@@ -205,19 +191,16 @@ def carros_equipa():
     with get_db() as conn:
         cursor = conn.cursor()
         
-        # Verificar se é diretor de equipa
         cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?', (session['id'],))
         if cursor.fetchone() is None:
             return redirect('/logout')
         
-        # Obter a equipa do diretor
         cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
         equipa = cursor.fetchone()
         
         if equipa is None:
             return redirect('/criar_equipa')
         
-        # Obter carros da equipa
         cursor.execute('SELECT VIN, modelo, marca, categoria, tipo_motor, potencia, peso FROM Carro WHERE id_equipa=?', (equipa[0],))
         carros = cursor.fetchall()
     
@@ -235,14 +218,12 @@ def adicionar_carro():
         with get_db() as conn:
             cursor = conn.cursor()
             
-            # Obter equipa do diretor
             cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
             equipa = cursor.fetchone()
             
             if equipa is None:
                 return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
             
-            # Usar Stored Procedures
             if data.get('vincular_existente'):
                 cursor.execute('EXEC sp_VincularCarro ?, ?', (data['vin'], equipa[0]))
             else:
@@ -299,7 +280,6 @@ def editar_carro(vin):
         
         with get_db() as conn:
             cursor = conn.cursor()
-            # Usar Stored Procedure para atualizar carro
             cursor.execute(
                 'EXEC sp_AtualizarCarro ?, ?, ?, ?, ?, ?, ?',
                 (vin, data['modelo'], data['marca'], data['categoria'], data['tipo_motor'], data['potencia'], data['peso'])
@@ -320,7 +300,6 @@ def remover_carro(vin):
         with get_db() as conn:
             cursor = conn.cursor()
             
-            # Get the team of the director
             cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
             equipa = cursor.fetchone()
             
@@ -329,7 +308,6 @@ def remover_carro(vin):
             
             id_equipa = equipa[0]
             
-            # Usar Stored Procedure para desvincular carro (já valida eventos ativos)
             cursor.execute('EXEC sp_DesvincularCarro ?, ?', (vin, id_equipa))
             conn.commit()
         
@@ -346,12 +324,10 @@ def eventos_equipa():
     with get_db() as conn:
         cursor = conn.cursor()
         
-        # Verify user is Diretor de Equipa
         cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?', (session['id'],))
         if cursor.fetchone() is None:
             return redirect('/logout')
         
-        # Get team
         cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
         equipa = cursor.fetchone()
         
@@ -360,7 +336,6 @@ def eventos_equipa():
         
         id_equipa = equipa[0]
         
-        # Get all events that are not finished, with info about team registration
         cursor.execute("""
             SELECT e.id_evento, e.nome, e.tipo, e.data_inicio, e.data_fim, e.status,
                    CASE WHEN pe.id_equipa IS NOT NULL THEN 1 ELSE 0 END as inscrito,
@@ -397,12 +372,10 @@ def eventos_atuais():
     with get_db() as conn:
         cursor = conn.cursor()
         
-        # Verify user is Diretor de Equipa
         cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?', (session['id'],))
         if cursor.fetchone() is None:
             return redirect('/logout')
         
-        # Get team
         cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
         equipa = cursor.fetchone()
         
@@ -411,7 +384,6 @@ def eventos_atuais():
         
         id_equipa = equipa[0]
         
-        # Get events the team is registered for
         cursor.execute("""
             SELECT e.id_evento, e.nome, e.tipo, e.data_inicio, e.data_fim, e.status
             FROM Evento e
@@ -447,14 +419,12 @@ def inscrever_evento():
         with get_db() as conn:
             cursor = conn.cursor()
             
-            # Get team
             cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
             equipa = cursor.fetchone()
             
             if equipa is None:
                 return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
             
-            # Usar Stored Procedure para inscrever equipa
             cursor.execute('EXEC sp_InscreverEquipaEvento ?, ?', (equipa[0], data['id_evento']))
             conn.commit()
         
@@ -472,7 +442,6 @@ def cancelar_inscricao(id_evento):
         with get_db() as conn:
             cursor = conn.cursor()
             
-            # Get team
             cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
             equipa = cursor.fetchone()
             
@@ -481,7 +450,6 @@ def cancelar_inscricao(id_evento):
             
             id_equipa = equipa[0]
             
-            # Usar Stored Procedure para cancelar inscrição (já valida sessões)
             cursor.execute('EXEC sp_CancelarInscricaoEvento ?, ?', (id_equipa, id_evento))
             conn.commit()
         
@@ -498,12 +466,10 @@ def inscricao_sessao():
     with get_db() as conn:
         cursor = conn.cursor()
         
-        # Verify user is Diretor de Equipa
         cursor.execute('SELECT * FROM Diretor_de_Equipa WHERE id_utilizador=?', (session['id'],))
         if cursor.fetchone() is None:
             return redirect('/logout')
         
-        # Get team
         cursor.execute('SELECT * FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
         equipa = cursor.fetchone()
         
@@ -512,7 +478,6 @@ def inscricao_sessao():
         
         id_equipa = equipa[0]
         
-        # Get events the team is registered for
         cursor.execute("""
             SELECT e.id_evento, e.nome, e.tipo, e.data_inicio, e.data_fim, e.status
             FROM Evento e
@@ -534,11 +499,9 @@ def inscricao_sessao():
                 'status': e[5]
             })
         
-        # Get team's pilots
         cursor.execute('SELECT numero_licenca, nome FROM Piloto WHERE id_equipa=?', (id_equipa,))
         pilotos = cursor.fetchall()
         
-        # Get team's cars
         cursor.execute('SELECT VIN, modelo, marca FROM Carro WHERE id_equipa=?', (id_equipa,))
         carros = cursor.fetchall()
     
@@ -554,7 +517,6 @@ def obter_sessoes_inscricao(id):
         with get_db() as conn:
             cursor = conn.cursor()
             
-            # Get team
             cursor.execute('SELECT id_equipa FROM Equipa WHERE ID_utilizador_diretor_de_equipa=?', (session['id'],))
             equipa = cursor.fetchone()
             
@@ -563,7 +525,6 @@ def obter_sessoes_inscricao(id):
             
             id_equipa = equipa[0]
             
-            # Get sessions for this event with status
             cursor.execute("""
                 SELECT id_sessao, data, tipo, hora_inicio, hora_fim, status 
                 FROM Sessao 
@@ -576,7 +537,6 @@ def obter_sessoes_inscricao(id):
             previous_completed = True
             
             for s in sessoes:
-                # Get inscriptions for this session (only from this team)
                 cursor.execute("""
                     SELECT ps.numero_licenca, ps.VIN_carro, p.nome, c.marca, c.modelo
                     FROM Participa_Sessao ps
@@ -627,7 +587,6 @@ def criar_participacao_sessao():
         
         with get_db() as conn:
             cursor = conn.cursor()
-            # Usar Stored Procedure para inscrever em sessão (já valida duplicados e status)
             cursor.execute('EXEC sp_InscreverSessao ?, ?, ?, ?, ?, ?', (
                 data['id_sessao'],
                 data['numero_licenca'],
@@ -653,7 +612,6 @@ def remover_participacao_sessao():
         
         with get_db() as conn:
             cursor = conn.cursor()
-            # Usar Stored Procedure para cancelar inscrição (já valida status)
             cursor.execute('EXEC sp_CancelarInscricaoSessao ?, ?, ?', (
                 data['id_sessao'],
                 data['numero_licenca'],
