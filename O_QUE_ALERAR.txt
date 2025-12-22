@@ -1,0 +1,1 @@
+Para alterar o utilizador e password para acesso à base de dados, é só ir a config.py e alterar os valores de USER e PASSWORD.
