@@ -101,8 +101,11 @@
                     <div class="form-group">
                         <label for="tempo">Tempo (mm:ss:ms)</label>
                         <input type="text" id="tempo" name="tempo" placeholder="01:23:45"
-                            pattern="^[0-9]{2}:[0-9]{2}:[0-9]{2}$" title="Formato obrigatório: mm:ss:ms (ex: 01:23:45)"
-                            required />
+                            pattern="^[0-5][0-9]:[0-5][0-9]:[0-9]{2}$"
+                            title="Formato: mm:ss:ms (minutos e segundos 00-59, milissegundos 00-99)" maxlength="8"
+                            oninput="formatarTempo(this)" required />
+                        <small style="color: #888; font-size: 11px;">Minutos: 00-59 | Segundos: 00-59 | Milissegundos:
+                            00-99</small>
                     </div>
                 </div>
 
@@ -425,6 +428,45 @@
 
         function fecharModal() {
             document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        function formatarTempo(input) {
+            // Remove caracteres não numéricos exceto :
+            let value = input.value.replace(/[^\d:]/g, '');
+
+            // Remove todos os : e reformata
+            let digits = value.replace(/:/g, '');
+
+            // Limita a 6 dígitos
+            if (digits.length > 6) digits = digits.substring(0, 6);
+
+            // Valida e corrige valores
+            let mm = digits.substring(0, 2);
+            let ss = digits.substring(2, 4);
+            let ms = digits.substring(4, 6);
+
+            // Corrige minutos > 59
+            if (mm.length === 2 && parseInt(mm) > 59) mm = '59';
+            // Corrige segundos > 59
+            if (ss.length === 2 && parseInt(ss) > 59) ss = '59';
+
+            // Reconstrói o valor com :
+            let formatted = mm;
+            if (digits.length > 2) formatted += ':' + ss;
+            if (digits.length > 4) formatted += ':' + ms;
+
+            input.value = formatted;
+        }
+
+        function validarTempo(tempo) {
+            const regex = /^[0-5][0-9]:[0-5][0-9]:[0-9]{2}$/;
+            if (!regex.test(tempo)) return false;
+
+            const parts = tempo.split(':');
+            const mm = parseInt(parts[0]);
+            const ss = parseInt(parts[1]);
+
+            return mm < 60 && ss < 60;
         }
 
         document.getElementById('voltaForm').addEventListener('submit', function (e) {
