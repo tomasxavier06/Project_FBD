@@ -190,12 +190,7 @@ def alterar_status_evento(id):
         
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute("UPDATE Evento SET status=? WHERE id_evento=?", (data['status'], id))
-            
-            # If event is concluded, also conclude all its sessions
-            if data['status'] == 'Concluído':
-                cursor.execute("UPDATE Sessao SET status='Concluída' WHERE id_evento=?", (id,))
-            
+            cursor.execute('EXEC sp_AlterarStatusEvento ?, ?', (id, data['status']))
             conn.commit()
         
         return jsonify({'success': True, 'message': 'Estado do evento atualizado!'})
@@ -274,7 +269,8 @@ def alterar_status_sessao(id):
         
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute("UPDATE Sessao SET status=? WHERE id_sessao=?", (data['status'], id))
+            # Usar Stored Procedure para alterar status
+            cursor.execute('EXEC sp_AlterarStatusSessao ?, ?', (id, data['status']))
             conn.commit()
         
         return jsonify({'success': True, 'message': 'Estado da sessão atualizado!'})
@@ -292,9 +288,9 @@ def criar_sessao():
         
         with get_db() as conn:
             cursor = conn.cursor()
+            # Usar Stored Procedure para criar sessão
             cursor.execute(
-                """INSERT INTO Sessao (data, tipo, hora_inicio, hora_fim, id_evento) 
-                   VALUES (?, ?, ?, ?, ?)""",
+                'EXEC sp_CriarSessao ?, ?, ?, ?, ?',
                 (data['data'], data['tipo'], data['hora_inicio'], data['hora_fim'], data['id_evento'])
             )
             conn.commit()
@@ -314,10 +310,10 @@ def editar_sessao(id):
         
         with get_db() as conn:
             cursor = conn.cursor()
+            # Usar Stored Procedure para atualizar sessão
             cursor.execute(
-                """UPDATE Sessao SET data=?, tipo=?, hora_inicio=?, hora_fim=? 
-                   WHERE id_sessao=?""",
-                (data['data'], data['tipo'], data['hora_inicio'], data['hora_fim'], id)
+                'EXEC sp_AtualizarSessao ?, ?, ?, ?, ?',
+                (id, data['data'], data['tipo'], data['hora_inicio'], data['hora_fim'])
             )
             conn.commit()
         
@@ -334,22 +330,8 @@ def remover_sessao(id):
     try:
         with get_db() as conn:
             cursor = conn.cursor()
-            
-            # Verificar se a sessão está com status 'Por Iniciar'
-            cursor.execute("SELECT status FROM Sessao WHERE id_sessao=?", (id,))
-            sessao = cursor.fetchone()
-            
-            if sessao is None:
-                return jsonify({'success': False, 'message': 'Sessão não encontrada'}), 404
-            
-            sessao_status = sessao[0] if sessao[0] else 'Por Iniciar'
-            if sessao_status != 'Por Iniciar':
-                return jsonify({
-                    'success': False, 
-                    'message': 'Só é possível remover sessões com status "Por Iniciar". Esta sessão está "' + sessao_status + '".'
-                }), 400
-            
-            cursor.execute("DELETE FROM Sessao WHERE id_sessao=?", (id,))
+            # Usar Stored Procedure para remover sessão (já valida status)
+            cursor.execute('EXEC sp_RemoverSessao ?', (id,))
             conn.commit()
         
         return jsonify({'success': True, 'message': 'Sessão removida com sucesso!'})

@@ -62,23 +62,21 @@ def register():
             password_hash = hashlib.sha256(password.encode()).hexdigest()
             tipo = data['role']
             
+            # Mapear role do frontend para parâmetro da SP
+            role_map = {
+                'tecnico_de_pista': 'tecnico_pista',
+                'diretor_de_equipa': 'diretor_equipa',
+                'diretor_de_corrida': 'diretor_corrida'
+            }
+            role_sp = role_map.get(tipo, tipo)
+            
             with get_db() as conn:
                 cursor = conn.cursor()
-                
-                # Inserir utilizador com password hasheada
+                # Usar Stored Procedure para registo
                 cursor.execute(
-                    "INSERT INTO Utilizador (username, email, password, nome) OUTPUT INSERTED.ID_utilizador VALUES (?, ?, ?, ?)",
-                    (username, email, password_hash, nome)
+                    'EXEC sp_RegistarUtilizador ?, ?, ?, ?, ?',
+                    (username, email, password_hash, nome, role_sp)
                 )
-                id_utilizador = cursor.fetchone()[0]
-                
-                if tipo == 'tecnico_de_pista':
-                    cursor.execute("INSERT INTO Tecnico_de_Pista (id_utilizador) VALUES (?)", (id_utilizador,))
-                elif tipo == 'diretor_de_equipa':
-                    cursor.execute("INSERT INTO Diretor_de_Equipa (id_utilizador) VALUES (?)", (id_utilizador,))
-                elif tipo == 'diretor_de_corrida':
-                    cursor.execute("INSERT INTO Diretor_de_Corrida (id_utilizador) VALUES (?)", (id_utilizador,))
-                
                 conn.commit()
             
             return jsonify({'success': True, 'message': 'Utilizador registado com sucesso!'})

@@ -443,3 +443,465 @@ INNER JOIN Carro C ON V.carro_VIN = C.VIN
 INNER JOIN Sessao S ON V.id_sessao = S.id_sessao
 INNER JOIN Evento Ev ON S.id_evento = Ev.id_evento;
 GO
+
+-- ==========================================
+-- NOVAS STORED PROCEDURES
+-- ==========================================
+
+-- SP 1: Registar Utilizador com Role
+CREATE PROCEDURE sp_RegistarUtilizador
+    @username VARCHAR(50),
+    @email VARCHAR(100),
+    @password VARCHAR(64),
+    @nome VARCHAR(100),
+    @role VARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        IF EXISTS (SELECT 1 FROM Utilizador WHERE username = @username)
+        BEGIN
+            RAISERROR('Username já existe', 16, 1);
+            RETURN;
+        END
+        
+        IF EXISTS (SELECT 1 FROM Utilizador WHERE email = @email)
+        BEGIN
+            RAISERROR('Email já existe', 16, 1);
+            RETURN;
+        END
+        
+        INSERT INTO Utilizador (username, email, password, nome)
+        VALUES (@username, @email, @password, @nome);
+        
+        DECLARE @id_utilizador INT = SCOPE_IDENTITY();
+        
+        IF @role = 'tecnico_pista'
+            INSERT INTO Tecnico_de_Pista (id_utilizador) VALUES (@id_utilizador);
+        ELSE IF @role = 'diretor_equipa'
+            INSERT INTO Diretor_de_Equipa (id_utilizador) VALUES (@id_utilizador);
+        ELSE IF @role = 'diretor_corrida'
+            INSERT INTO Diretor_de_Corrida (id_utilizador) VALUES (@id_utilizador);
+        
+        COMMIT TRANSACTION;
+        SELECT @id_utilizador AS id_utilizador;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- SP 3: Alterar Status Evento
+CREATE PROCEDURE sp_AlterarStatusEvento
+    @id_evento INT,
+    @novo_status VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        IF NOT EXISTS (SELECT 1 FROM Evento WHERE id_evento = @id_evento)
+        BEGIN
+            RAISERROR('Evento não encontrado', 16, 1);
+            RETURN;
+        END
+        
+        UPDATE Evento SET status = @novo_status WHERE id_evento = @id_evento;
+        
+        IF @novo_status = 'Concluído'
+            UPDATE Sessao SET status = 'Concluída' WHERE id_evento = @id_evento;
+        
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- SP 4: Alterar Status Sessão
+CREATE PROCEDURE sp_AlterarStatusSessao
+    @id_sessao INT,
+    @novo_status VARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF NOT EXISTS (SELECT 1 FROM Sessao WHERE id_sessao = @id_sessao)
+    BEGIN
+        RAISERROR('Sessão não encontrada', 16, 1);
+        RETURN;
+    END
+    
+    DECLARE @status_atual VARCHAR(20);
+    SELECT @status_atual = ISNULL(status, 'Por Iniciar') FROM Sessao WHERE id_sessao = @id_sessao;
+    
+    IF @status_atual = 'Concluída' AND @novo_status != 'Concluída'
+    BEGIN
+        RAISERROR('Não é possível alterar status de sessão concluída', 16, 1);
+        RETURN;
+    END
+    
+    UPDATE Sessao SET status = @novo_status WHERE id_sessao = @id_sessao;
+END;
+GO
+
+-- SP 5: Inscrever Equipa em Evento
+CREATE PROCEDURE sp_InscreverEquipaEvento
+    @id_equipa INT,
+    @id_evento INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF EXISTS (SELECT 1 FROM Participa_Evento WHERE id_equipa = @id_equipa AND id_evento = @id_evento)
+    BEGIN
+        RAISERROR('Equipa já está inscrita neste evento', 16, 1);
+        RETURN;
+    END
+    
+    DECLARE @status VARCHAR(50);
+    SELECT @status = status FROM Evento WHERE id_evento = @id_evento;
+    
+    IF @status NOT IN ('Por Iniciar', 'A Decorrer')
+    BEGIN
+        RAISERROR('Só é possível inscrever em eventos ativos', 16, 1);
+        RETURN;
+    END
+    
+    INSERT INTO Participa_Evento (id_equipa, id_evento) VALUES (@id_equipa, @id_evento);
+END;
+GO
+
+-- SP 6: Cancelar Inscrição Evento
+CREATE PROCEDURE sp_CancelarInscricaoEvento
+    @id_equipa INT,
+    @id_evento INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @count INT;
+    SELECT @count = COUNT(*) 
+    FROM Participa_Sessao ps
+    INNER JOIN Sessao s ON ps.id_sessao = s.id_sessao
+    INNER JOIN Piloto p ON ps.numero_licenca = p.numero_licenca
+    WHERE s.id_evento = @id_evento AND p.id_equipa = @id_equipa;
+    
+    IF @count > 0
+    BEGIN
+        RAISERROR('Existem pilotos inscritos em sessões. Remova primeiro as inscrições.', 16, 1);
+        RETURN;
+    END
+    
+    DELETE FROM Participa_Evento WHERE id_equipa = @id_equipa AND id_evento = @id_evento;
+END;
+GO
+
+-- SP 7: Inscrever em Sessão
+CREATE PROCEDURE sp_InscreverSessao
+    @id_sessao INT,
+    @numero_licenca INT,
+    @VIN_carro VARCHAR(50),
+    @combustivel_inicial DECIMAL(5,2),
+    @pressao_pneus DECIMAL(4,2),
+    @configuracao_aerodinamica INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF EXISTS (SELECT 1 FROM Participa_Sessao WHERE id_sessao = @id_sessao AND numero_licenca = @numero_licenca)
+    BEGIN
+        RAISERROR('Este piloto já está inscrito nesta sessão', 16, 1);
+        RETURN;
+    END
+    
+    IF EXISTS (SELECT 1 FROM Participa_Sessao WHERE id_sessao = @id_sessao AND VIN_carro = @VIN_carro)
+    BEGIN
+        RAISERROR('Este carro já está inscrito nesta sessão', 16, 1);
+        RETURN;
+    END
+    
+    DECLARE @status VARCHAR(20);
+    SELECT @status = ISNULL(status, 'Por Iniciar') FROM Sessao WHERE id_sessao = @id_sessao;
+    
+    IF @status = 'Concluída'
+    BEGIN
+        RAISERROR('Não é possível inscrever em sessão concluída', 16, 1);
+        RETURN;
+    END
+    
+    INSERT INTO Participa_Sessao (id_sessao, numero_licenca, VIN_carro, combustivel_inicial, pressao_pneus, configuracao_aerodinamica)
+    VALUES (@id_sessao, @numero_licenca, @VIN_carro, @combustivel_inicial, @pressao_pneus, @configuracao_aerodinamica);
+END;
+GO
+
+-- SP 8: Cancelar Inscrição Sessão
+CREATE PROCEDURE sp_CancelarInscricaoSessao
+    @id_sessao INT,
+    @numero_licenca INT,
+    @VIN_carro VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @status VARCHAR(20);
+    SELECT @status = ISNULL(status, 'Por Iniciar') FROM Sessao WHERE id_sessao = @id_sessao;
+    
+    IF @status IN ('A Decorrer', 'Concluída')
+    BEGIN
+        RAISERROR('Não é possível desinscrever de sessão em andamento ou concluída', 16, 1);
+        RETURN;
+    END
+    
+    DELETE FROM Participa_Sessao 
+    WHERE id_sessao = @id_sessao AND numero_licenca = @numero_licenca AND VIN_carro = @VIN_carro;
+END;
+GO
+
+-- SP 9: Criar Equipa
+CREATE PROCEDURE sp_CriarEquipa
+    @nome VARCHAR(100),
+    @pais VARCHAR(50),
+    @id_utilizador_diretor INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF EXISTS (SELECT 1 FROM Equipa WHERE nome = @nome)
+    BEGIN
+        RAISERROR('Já existe uma equipa com este nome', 16, 1);
+        RETURN;
+    END
+    
+    IF EXISTS (SELECT 1 FROM Equipa WHERE ID_utilizador_diretor_de_equipa = @id_utilizador_diretor)
+    BEGIN
+        RAISERROR('Este diretor já possui uma equipa', 16, 1);
+        RETURN;
+    END
+    
+    INSERT INTO Equipa (nome, pais, ID_utilizador_diretor_de_equipa)
+    VALUES (@nome, @pais, @id_utilizador_diretor);
+    
+    SELECT SCOPE_IDENTITY() AS id_equipa;
+END;
+GO
+
+-- SP 10: Criar Sessão
+CREATE PROCEDURE sp_CriarSessao
+    @data DATE,
+    @tipo VARCHAR(50),
+    @hora_inicio TIME,
+    @hora_fim TIME,
+    @id_evento INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF NOT EXISTS (SELECT 1 FROM Evento WHERE id_evento = @id_evento)
+    BEGIN
+        RAISERROR('Evento não encontrado', 16, 1);
+        RETURN;
+    END
+    
+    IF @hora_fim <= @hora_inicio
+    BEGIN
+        RAISERROR('Hora fim deve ser maior que hora início', 16, 1);
+        RETURN;
+    END
+    
+    INSERT INTO Sessao (data, tipo, hora_inicio, hora_fim, id_evento, status)
+    VALUES (@data, @tipo, @hora_inicio, @hora_fim, @id_evento, 'Por Iniciar');
+    
+    SELECT SCOPE_IDENTITY() AS id_sessao;
+END;
+GO
+
+-- SP 11: Atualizar Evento
+CREATE PROCEDURE sp_AtualizarEvento
+    @id_evento INT,
+    @nome VARCHAR(100),
+    @tipo VARCHAR(50),
+    @data_inicio DATE,
+    @data_fim DATE,
+    @status VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF NOT EXISTS (SELECT 1 FROM Evento WHERE id_evento = @id_evento)
+    BEGIN
+        RAISERROR('Evento não encontrado', 16, 1);
+        RETURN;
+    END
+    
+    IF @data_fim < @data_inicio
+    BEGIN
+        RAISERROR('Data fim deve ser >= data início', 16, 1);
+        RETURN;
+    END
+    
+    UPDATE Evento 
+    SET nome = @nome, tipo = @tipo, data_inicio = @data_inicio, data_fim = @data_fim, status = @status
+    WHERE id_evento = @id_evento;
+END;
+GO
+
+-- SP 12: Atualizar Sessão
+CREATE PROCEDURE sp_AtualizarSessao
+    @id_sessao INT,
+    @data DATE,
+    @tipo VARCHAR(50),
+    @hora_inicio TIME,
+    @hora_fim TIME
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @status VARCHAR(20);
+    SELECT @status = ISNULL(status, 'Por Iniciar') FROM Sessao WHERE id_sessao = @id_sessao;
+    
+    IF @status != 'Por Iniciar'
+    BEGIN
+        RAISERROR('Só é possível editar sessões com status "Por Iniciar"', 16, 1);
+        RETURN;
+    END
+    
+    UPDATE Sessao SET data = @data, tipo = @tipo, hora_inicio = @hora_inicio, hora_fim = @hora_fim
+    WHERE id_sessao = @id_sessao;
+END;
+GO
+
+-- SP 13: Remover Sessão
+CREATE PROCEDURE sp_RemoverSessao
+    @id_sessao INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @status VARCHAR(20);
+    SELECT @status = ISNULL(status, 'Por Iniciar') FROM Sessao WHERE id_sessao = @id_sessao;
+    
+    IF @status IS NULL
+    BEGIN
+        RAISERROR('Sessão não encontrada', 16, 1);
+        RETURN;
+    END
+    
+    IF @status != 'Por Iniciar'
+    BEGIN
+        RAISERROR('Só é possível remover sessões com status "Por Iniciar"', 16, 1);
+        RETURN;
+    END
+    
+    DELETE FROM Sessao WHERE id_sessao = @id_sessao;
+END;
+GO
+
+-- SP 14: Atualizar Condições Pista
+CREATE PROCEDURE sp_AtualizarCondicoesPista
+    @id_sessao INT,
+    @temperatura_asfalto INT,
+    @temperatura_ar INT,
+    @humidade INT,
+    @precipitacao INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF NOT EXISTS (SELECT 1 FROM Sessao WHERE id_sessao = @id_sessao)
+    BEGIN
+        RAISERROR('Sessão não encontrada', 16, 1);
+        RETURN;
+    END
+    
+    UPDATE Sessao 
+    SET temperatura_asfalto = @temperatura_asfalto, temperatura_ar = @temperatura_ar,
+        humidade = @humidade, precipitacao = @precipitacao
+    WHERE id_sessao = @id_sessao;
+END;
+GO
+
+-- SP 15: Atualizar Piloto
+CREATE PROCEDURE sp_AtualizarPiloto
+    @numero_licenca INT,
+    @nome VARCHAR(100),
+    @data_nascimento DATE,
+    @nacionalidade VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE Piloto SET nome = @nome, data_nascimento = @data_nascimento, nacionalidade = @nacionalidade
+    WHERE numero_licenca = @numero_licenca;
+END;
+GO
+
+-- SP 16: Atualizar Carro
+CREATE PROCEDURE sp_AtualizarCarro
+    @VIN VARCHAR(50),
+    @modelo VARCHAR(50),
+    @marca VARCHAR(50),
+    @categoria VARCHAR(30),
+    @tipo_motor VARCHAR(30),
+    @potencia INT,
+    @peso INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE Carro SET modelo = @modelo, marca = @marca, categoria = @categoria, 
+        tipo_motor = @tipo_motor, potencia = @potencia, peso = @peso
+    WHERE VIN = @VIN;
+END;
+GO
+
+-- SP 17: Desvincular Piloto
+CREATE PROCEDURE sp_DesvincularPiloto
+    @numero_licenca INT,
+    @id_equipa INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @count INT;
+    SELECT @count = COUNT(*) FROM Participa_Evento pe
+    INNER JOIN Evento e ON pe.id_evento = e.id_evento
+    WHERE pe.id_equipa = @id_equipa AND e.status IN ('Por Iniciar', 'A Decorrer');
+    
+    IF @count > 0
+    BEGIN
+        RAISERROR('Não é possível remover pilotos enquanto equipa está em eventos ativos', 16, 1);
+        RETURN;
+    END
+    
+    UPDATE Piloto SET id_equipa = NULL WHERE numero_licenca = @numero_licenca AND id_equipa = @id_equipa;
+END;
+GO
+
+-- SP 18: Desvincular Carro
+CREATE PROCEDURE sp_DesvincularCarro
+    @VIN VARCHAR(50),
+    @id_equipa INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @count INT;
+    SELECT @count = COUNT(*) FROM Participa_Evento pe
+    INNER JOIN Evento e ON pe.id_evento = e.id_evento
+    WHERE pe.id_equipa = @id_equipa AND e.status IN ('Por Iniciar', 'A Decorrer');
+    
+    IF @count > 0
+    BEGIN
+        RAISERROR('Não é possível remover carros enquanto equipa está em eventos ativos', 16, 1);
+        RETURN;
+    END
+    
+    UPDATE Carro SET id_equipa = NULL WHERE VIN = @VIN AND id_equipa = @id_equipa;
+END;
+GO

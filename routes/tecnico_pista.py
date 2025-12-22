@@ -221,17 +221,13 @@ def atualizar_condicoes_sessao(id):
         
         with get_db() as conn:
             cursor = conn.cursor()
-            
-            cursor.execute("""
-                UPDATE Sessao 
-                SET temperatura_asfalto=?, temperatura_ar=?, humidade=?, precipitacao=?
-                WHERE id_sessao=?
-            """, (
+            # Usar Stored Procedure para atualizar condições
+            cursor.execute('EXEC sp_AtualizarCondicoesPista ?, ?, ?, ?, ?', (
+                id,
                 data.get('temperatura_asfalto'),
                 data.get('temperatura_ar'),
                 data.get('humidade'),
-                data.get('precipitacao'),
-                id
+                data.get('precipitacao')
             ))
             conn.commit()
         

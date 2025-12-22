@@ -48,8 +48,9 @@ def criar_equipa():
         # POST - Create team
         try:
             data = request.get_json()
+            # Usar Stored Procedure para criar equipa
             cursor.execute(
-                "INSERT INTO Equipa (nome, pais, ID_utilizador_diretor_de_equipa) VALUES (?, ?, ?)",
+                'EXEC sp_CriarEquipa ?, ?, ?',
                 (data['nome'], data['pais'], session['id'])
             )
             conn.commit()
@@ -157,9 +158,10 @@ def editar_piloto(id):
         
         with get_db() as conn:
             cursor = conn.cursor()
+            # Usar Stored Procedure para atualizar piloto
             cursor.execute(
-                "UPDATE Piloto SET nome=?, data_nascimento=?, nacionalidade=? WHERE numero_licenca=?",
-                (data['nome'], data['data_nascimento'], data['nacionalidade'], id)
+                'EXEC sp_AtualizarPiloto ?, ?, ?, ?',
+                (id, data['nome'], data['data_nascimento'], data['nacionalidade'])
             )
             conn.commit()
         
@@ -186,21 +188,8 @@ def remover_piloto(id):
             
             id_equipa = equipa[0]
             
-            # Check if team is registered in any active event
-            cursor.execute("""
-                SELECT COUNT(*) FROM Participa_Evento pe
-                INNER JOIN Evento e ON pe.id_evento = e.id_evento
-                WHERE pe.id_equipa = ? AND e.status IN ('Por Iniciar', 'A Decorrer')
-            """, (id_equipa,))
-            
-            if cursor.fetchone()[0] > 0:
-                return jsonify({
-                    'success': False, 
-                    'message': 'Não é possível remover pilotos enquanto a equipa está inscrita em eventos que ainda não terminaram.'
-                }), 400
-            
-            # Unlink pilot from team instead of deleting
-            cursor.execute("UPDATE Piloto SET id_equipa=NULL WHERE numero_licenca=? AND id_equipa=?", (id, id_equipa))
+            # Usar Stored Procedure para desvincular piloto (já valida eventos ativos)
+            cursor.execute('EXEC sp_DesvincularPiloto ?, ?', (id, id_equipa))
             conn.commit()
         
         return jsonify({'success': True, 'message': 'Piloto desvinculado da equipa com sucesso!'})
@@ -310,9 +299,10 @@ def editar_carro(vin):
         
         with get_db() as conn:
             cursor = conn.cursor()
+            # Usar Stored Procedure para atualizar carro
             cursor.execute(
-                "UPDATE Carro SET modelo=?, marca=?, categoria=?, tipo_motor=?, potencia=?, peso=? WHERE VIN=?",
-                (data['modelo'], data['marca'], data['categoria'], data['tipo_motor'], data['potencia'], data['peso'], vin)
+                'EXEC sp_AtualizarCarro ?, ?, ?, ?, ?, ?, ?',
+                (vin, data['modelo'], data['marca'], data['categoria'], data['tipo_motor'], data['potencia'], data['peso'])
             )
             conn.commit()
         
@@ -339,21 +329,8 @@ def remover_carro(vin):
             
             id_equipa = equipa[0]
             
-            # Check if team is registered in any active event
-            cursor.execute("""
-                SELECT COUNT(*) FROM Participa_Evento pe
-                INNER JOIN Evento e ON pe.id_evento = e.id_evento
-                WHERE pe.id_equipa = ? AND e.status IN ('Por Iniciar', 'A Decorrer')
-            """, (id_equipa,))
-            
-            if cursor.fetchone()[0] > 0:
-                return jsonify({
-                    'success': False, 
-                    'message': 'Não é possível remover carros enquanto a equipa está inscrita em eventos que ainda não terminaram.'
-                }), 400
-            
-            # Unlink car from team instead of deleting
-            cursor.execute("UPDATE Carro SET id_equipa=NULL WHERE VIN=? AND id_equipa=?", (vin, id_equipa))
+            # Usar Stored Procedure para desvincular carro (já valida eventos ativos)
+            cursor.execute('EXEC sp_DesvincularCarro ?, ?', (vin, id_equipa))
             conn.commit()
         
         return jsonify({'success': True, 'message': 'Carro desvinculado da equipa com sucesso!'})
@@ -477,10 +454,8 @@ def inscrever_evento():
             if equipa is None:
                 return jsonify({'success': False, 'message': 'Equipa não encontrada'}), 400
             
-            cursor.execute(
-                "INSERT INTO Participa_Evento (id_equipa, id_evento) VALUES (?, ?)",
-                (equipa[0], data['id_evento'])
-            )
+            # Usar Stored Procedure para inscrever equipa
+            cursor.execute('EXEC sp_InscreverEquipaEvento ?, ?', (equipa[0], data['id_evento']))
             conn.commit()
         
         return jsonify({'success': True, 'message': 'Inscrição efetuada com sucesso!'})
@@ -506,27 +481,8 @@ def cancelar_inscricao(id_evento):
             
             id_equipa = equipa[0]
             
-            # Check if there are pilots/cars from this team registered in sessions of this event
-            cursor.execute("""
-                SELECT COUNT(*) 
-                FROM Participa_Sessao ps
-                INNER JOIN Sessao s ON ps.id_sessao = s.id_sessao
-                INNER JOIN Piloto p ON ps.numero_licenca = p.numero_licenca
-                WHERE s.id_evento = ? AND p.id_equipa = ?
-            """, (id_evento, id_equipa))
-            
-            count = cursor.fetchone()[0]
-            
-            if count > 0:
-                return jsonify({
-                    'success': False, 
-                    'message': 'Não é possível cancelar a inscrição. Existem pilotos inscritos em sessões deste evento.'
-                }), 400
-            
-            cursor.execute(
-                "DELETE FROM Participa_Evento WHERE id_equipa=? AND id_evento=?",
-                (id_equipa, id_evento)
-            )
+            # Usar Stored Procedure para cancelar inscrição (já valida sessões)
+            cursor.execute('EXEC sp_CancelarInscricaoEvento ?, ?', (id_equipa, id_evento))
             conn.commit()
         
         return jsonify({'success': True, 'message': 'Inscrição cancelada com sucesso!'})
@@ -671,27 +627,8 @@ def criar_participacao_sessao():
         
         with get_db() as conn:
             cursor = conn.cursor()
-            
-            # Check if pilot is already registered in this session
-            cursor.execute("""
-                SELECT * FROM Participa_Sessao 
-                WHERE id_sessao=? AND numero_licenca=?
-            """, (data['id_sessao'], data['numero_licenca']))
-            if cursor.fetchone() is not None:
-                return jsonify({'success': False, 'message': 'Este piloto já está inscrito nesta sessão!'}), 400
-            
-            # Check if car is already registered in this session
-            cursor.execute("""
-                SELECT * FROM Participa_Sessao 
-                WHERE id_sessao=? AND VIN_carro=?
-            """, (data['id_sessao'], data['VIN_carro']))
-            if cursor.fetchone() is not None:
-                return jsonify({'success': False, 'message': 'Este carro já está inscrito nesta sessão!'}), 400
-            
-            cursor.execute("""
-                INSERT INTO Participa_Sessao (id_sessao, numero_licenca, VIN_carro, combustivel_inicial, pressao_pneus, configuracao_aerodinamica)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (
+            # Usar Stored Procedure para inscrever em sessão (já valida duplicados e status)
+            cursor.execute('EXEC sp_InscreverSessao ?, ?, ?, ?, ?, ?', (
                 data['id_sessao'],
                 data['numero_licenca'],
                 data['VIN_carro'],
@@ -716,20 +653,12 @@ def remover_participacao_sessao():
         
         with get_db() as conn:
             cursor = conn.cursor()
-            
-            # Check if session is in progress
-            cursor.execute("SELECT status FROM Sessao WHERE id_sessao=?", (data['id_sessao'],))
-            sessao = cursor.fetchone()
-            if sessao and sessao[0] == 'A Decorrer':
-                return jsonify({
-                    'success': False, 
-                    'message': 'Não é possível desinscrever de uma sessão que está a decorrer!'
-                }), 400
-            
-            cursor.execute("""
-                DELETE FROM Participa_Sessao 
-                WHERE id_sessao=? AND numero_licenca=? AND VIN_carro=?
-            """, (data['id_sessao'], data['numero_licenca'], data['VIN_carro']))
+            # Usar Stored Procedure para cancelar inscrição (já valida status)
+            cursor.execute('EXEC sp_CancelarInscricaoSessao ?, ?, ?', (
+                data['id_sessao'],
+                data['numero_licenca'],
+                data['VIN_carro']
+            ))
             conn.commit()
         
         return jsonify({'success': True, 'message': 'Inscrição removida com sucesso!'})
