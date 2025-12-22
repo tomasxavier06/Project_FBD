@@ -1,4 +1,3 @@
-# Rotas públicas (acessíveis sem autenticação)
 from flask import Blueprint, render_template, request, jsonify
 from utils.database import get_db
 
@@ -28,7 +27,6 @@ def pilots():
             if ordem.lower() not in ['asc', 'desc']:
                 ordem = 'asc'
 
-            # Usar View vw_RankingPilotos (inclui idade calculada pela UDF)
             query = "SELECT numero_licenca, nome, data_nascimento, nacionalidade, nome_equipa, numero_eventos, idade FROM vw_RankingPilotos"
             parametros = []
 
@@ -123,16 +121,34 @@ def events():
         with get_db() as conn:
             cursor = conn.cursor()
             
-            # garante que os status estão atualizados antes de listar
+            pesquisa = request.args.get('nome_procurado', '')
+            
             cursor.execute("EXEC sp_ManutencaoStatusEventos")
             conn.commit()
             
-            # lista os eventos com os totais 
-            cursor.execute("EXEC sp_ListarEventosComTotais")
+            if pesquisa:
+                query = """
+                    SELECT 
+                        E.id_evento, E.nome, E.tipo, E.data_inicio, E.data_fim, E.status,
+                        (SELECT COUNT(DISTINCT id_equipa) FROM Participa_Evento PE WHERE PE.id_evento = E.id_evento) as total_equipas,
+                        (SELECT COUNT(DISTINCT ps.numero_licenca) 
+                        FROM Participa_Sessao ps 
+                        JOIN Sessao s ON ps.id_sessao = s.id_sessao 
+                        WHERE s.id_evento = E.id_evento) as total_pilotos
+                    FROM Evento E
+                    WHERE E.nome LIKE ? OR E.tipo LIKE ? OR E.status LIKE ?
+                    ORDER BY E.data_inicio DESC
+                """
+                v = f"%{pesquisa}%"
+                cursor.execute(query, (v, v, v))
+            else:
+                cursor.execute("EXEC sp_ListarEventosComTotais")
+            
             eventos = cursor.fetchall()
         
-        return render_template('events.html', eventos=eventos)
+        return render_template('events.html', eventos=eventos, pesquisa_feita=pesquisa)
     except Exception as e:
+        print(f"Erro na rota de eventos: {e}")
         return f"Erro: {e}"
 
 
@@ -173,7 +189,6 @@ def records():
         with get_db() as conn:
             cursor = conn.cursor()
 
-            # 1. Obter listas para os dropdowns (Filtros Tradicionais)
             cursor.execute("SELECT DISTINCT nome FROM Piloto ORDER BY nome")
             lista_pilotos = [row[0] for row in cursor.fetchall()]
 
@@ -187,16 +202,13 @@ def records():
             cursor.execute("SELECT DISTINCT nome FROM Evento ORDER BY nome")
             lista_eventos = [row[0] for row in cursor.fetchall()]
 
-            # 2. Capturar os filtros selecionados via GET
             f_piloto = request.args.get('piloto', '')
             f_carro = request.args.get('carro', '')
             f_evento = request.args.get('evento', '')
 
-            # Usar View vw_Recordes (inclui gap calculado pela UDF)
             query = "SELECT tempo_formatado, piloto, carro, evento, tempo, data, id_volta, gap FROM vw_Recordes WHERE 1=1"
             params = []
 
-            # Aplicação dos filtros via Dropdowns (comparações exatas)
             if f_piloto:
                 query += " AND piloto = ?"
                 params.append(f_piloto)
@@ -207,13 +219,11 @@ def records():
                 query += " AND evento = ?"
                 params.append(f_evento)
 
-            # Ordenar pelo tempo real (milissegundos) do mais rápido para o mais lento
             query += " ORDER BY tempo ASC"
 
             cursor.execute(query, params)
             recordes = cursor.fetchall()
 
-        # 4. Renderizar o template com todas as listas e filtros
         return render_template('records.html', 
                                recordes=recordes,
                                lista_pilotos=lista_pilotos,

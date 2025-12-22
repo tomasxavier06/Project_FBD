@@ -1,4 +1,3 @@
-# Rotas de autenticação
 from flask import Blueprint, render_template, request, jsonify, session, redirect
 import hashlib
 from utils.database import get_db
@@ -62,7 +61,6 @@ def register():
             password_hash = hashlib.sha256(password.encode()).hexdigest()
             tipo = data['role']
             
-            # Mapear role do frontend para parâmetro da SP
             role_map = {
                 'tecnico_de_pista': 'tecnico_pista',
                 'diretor_de_equipa': 'diretor_equipa',
@@ -72,7 +70,6 @@ def register():
             
             with get_db() as conn:
                 cursor = conn.cursor()
-                # Usar Stored Procedure para registo
                 cursor.execute(
                     'EXEC sp_RegistarUtilizador ?, ?, ?, ?, ?',
                     (username, email, password_hash, nome, role_sp)
@@ -83,7 +80,6 @@ def register():
         except Exception as e:
             return jsonify({'success': False, 'message': str(e)}), 400
     
-    # GET request - retorna o template
     return render_template('register.html')
 
 
@@ -114,13 +110,10 @@ def update_settings():
         with get_db() as conn:
             cursor = conn.cursor()
             
-            # Update name
             if data.get('nome'):
                 cursor.execute("UPDATE Utilizador SET nome=? WHERE ID_utilizador=?", (data['nome'], session['id']))
             
-            # Update password if provided
             if data.get('password_atual') and data.get('password_nova'):
-                # Verify current password
                 cursor.execute("SELECT password FROM Utilizador WHERE ID_utilizador=?", (session['id'],))
                 user = cursor.fetchone()
                 
@@ -128,7 +121,6 @@ def update_settings():
                 if user[0] != password_hash:
                     return jsonify({'success': False, 'message': 'Password atual incorreta!'}), 400
                 
-                # Update password
                 new_password_hash = hashlib.sha256(data['password_nova'].encode()).hexdigest()
                 cursor.execute("UPDATE Utilizador SET password=? WHERE ID_utilizador=?", (new_password_hash, session['id']))
             
